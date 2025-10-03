@@ -12,6 +12,7 @@ from routers.auth_router import auth_router
 from routers.asset_router import asset_router
 from routers.generation_router import generation_router
 from routers.story_board_router import story_board_router
+from routers.storyboard_v2_router import storyboard_v2_router
 
 # Database setup
 from db.session import engine
@@ -95,6 +96,7 @@ app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 app.include_router(asset_router, prefix="/api/assets", tags=["assets"])
 app.include_router(generation_router, prefix="/api/generations", tags=["generations"])
 app.include_router(story_board_router, prefix="/api/storyboard", tags=["storyboard"])
+app.include_router(storyboard_v2_router, prefix="/api/v2/storyboards", tags=["storyboards-v2"])
 
 
 
