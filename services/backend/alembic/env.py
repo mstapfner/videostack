@@ -1,0 +1,62 @@
+from logging.config import fileConfig
+
+import sqlmodel
+from sqlmodel import create_engine
+from sqlalchemy import pool
+from alembic import context
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# Import all your SQLModel models here
+# Set up the Python path to include the app directory
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+
+try:
+    from app.models.user import User
+except ImportError:
+    # Models might not exist yet or have different structure
+    User = None
+
+# Use SQLModel's metadata for autogenerate support
+target_metadata = sqlmodel.SQLModel.metadata
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+try:
+    # Try to connect to the database to determine if we're online or offline
+    database_url = config.get_main_option("sqlalchemy.url")
+    connectable = create_engine(database_url, poolclass=pool.NullPool)
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+except Exception as e:
+    # If we can't connect to the database, run in offline mode
+    print(f"Database connection failed ({e}), running in offline mode")
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()

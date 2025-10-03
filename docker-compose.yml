@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: videostack_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: videostack
+      POSTGRES_USER: videostack_user
+      POSTGRES_PASSWORD: videostack_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    networks:
+      - videostack_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U videostack_user -d videostack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+#   # Python Backend API v1
+#   backend:
+#     build:
+#       context: ./services/backend
+#       dockerfile: Dockerfile
+#     container_name: videostack_backend
+#     restart: unless-stopped
+#     environment:
+#       DATABASE_URL: postgresql://videostack_user:videostack_password@db:5432/videostack
+#       PORT: 8000
+#       WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID}
+#       WORKOS_API_KEY: ${WORKOS_API_KEY}
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - ./services/backend:/app
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     networks:
+#       - videostack_network
+#     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# 
+#   # Python API v2
+#   api-v2:
+#     build:
+#       context: ./services/api-v2
+#       dockerfile: Dockerfile
+#     container_name: videostack_api_v2
+#     restart: unless-stopped
+#     environment:
+#       DATABASE_URL: postgresql://videostack_user:videostack_password@db:5432/videostack
+#       PORT: 8001
+#     ports:
+#       - "8001:8001"
+#     volumes:
+#       - ./services/api-v2:/app
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     networks:
+#       - videostack_network
+#     command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  videostack_network:
+    driver: bridge
