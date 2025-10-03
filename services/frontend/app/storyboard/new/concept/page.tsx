@@ -60,11 +60,11 @@ export default function ConceptPage() {
             <span className="font-medium">Untitled Project</span>
           </Link>
           <div className="flex items-center gap-2 ml-auto text-sm">
-            <span className="text-neutral-400">Concept</span>
+            <span className="text-white">Concept</span>
             <span className="text-neutral-600">&gt;</span>
-            <span className="text-neutral-600">Storyline</span>
+            <Link href="/storyboard/new/storyline" className="text-neutral-600 hover:text-neutral-400">Storyline</Link>
             <span className="text-neutral-600">&gt;</span>
-            <span className="text-neutral-600">Breakdown</span>
+            <Link href="/storyboard/new/editor" className="text-neutral-600 hover:text-neutral-400">Breakdown</Link>
           </div>
         </div>
       </header>

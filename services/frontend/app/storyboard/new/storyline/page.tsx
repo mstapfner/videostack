@@ -131,8 +131,8 @@ export default function StorylinePage() {
   }
 
   const handleGenerateStoryboard = () => {
-    // Navigate to next step or show success
-    console.log("[v0] Generating storyboard...")
+    // Navigate to the editor page
+    router.push('/storyboard/new/editor')
   }
 
   return (
@@ -151,11 +151,11 @@ export default function StorylinePage() {
             <span className="font-medium">Project Title...</span>
           </Link>
           <div className="flex items-center gap-2 ml-auto text-sm">
-            <span className="text-neutral-400">Concept</span>
+            <Link href="/storyboard/new/concept" className="text-neutral-400 hover:text-white">Concept</Link>
             <span className="text-neutral-400">&gt;</span>
             <span className="text-white">Storyline</span>
             <span className="text-neutral-600">&gt;</span>
-            <span className="text-neutral-600">Breakdown</span>
+            <Link href="/storyboard/new/editor" className="text-neutral-600 hover:text-neutral-400">Breakdown</Link>
           </div>
         </div>
       </header>

@@ -12,6 +12,7 @@ from schemas.generation_schemas import (
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
+from services.backend.dependencies.runware_dependencies import generate_image, generate_video
 
 generation_router = r = APIRouter()
 
@@ -47,12 +48,16 @@ async def create_generation(
         session.commit()
         session.refresh(new_generation)
 
-        # In a real implementation, you would trigger the actual generation process here
-        # For now, we'll simulate it by updating the status to processing
-        # and then completed with a placeholder URL
+        # TODO: pick the actual model to use with the correct parameters:
+        model = "runware:101@1"
+        width = 1024
+        height = 1024
 
-        # TODO: Integrate with actual AI generation service (OpenAI, Stability AI, etc.)
-        # For demonstration, we'll simulate the generation process
+        if new_generation.generation_type == "image":
+            generated_content_url = await generate_image(new_generation.prompt, model, width, height)
+        elif new_generation.generation_type == "video":
+            generated_content_url = await generate_video(new_generation.prompt, model, width, height)
+
 
         return GenerationResponse(
             id=str(new_generation.id),
@@ -62,7 +67,7 @@ async def create_generation(
             last_frame=new_generation.last_frame,
             generation_type=new_generation.generation_type,
             status=new_generation.status,
-            generated_content_url=new_generation.generated_content_url,
+            generated_content_url=generated_content_url,
             error_message=new_generation.error_message,
             creation_date=new_generation.creation_date.isoformat() if new_generation.creation_date else "",
             updated_date=new_generation.updated_date.isoformat() if new_generation.updated_date else "",
