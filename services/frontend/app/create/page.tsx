@@ -1,0 +1,332 @@
+"use client"
+
+import { Sidebar } from "@/components/sidebar"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Card } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User } from "lucide-react"
+import { useState } from "react"
+import Image from "next/image"
+
+const angleOptions = [
+  { id: "none", label: "None", image: null },
+  { id: "eye-level", label: "Eye Level", image: "/woman-portrait-eye-level.jpg" },
+  { id: "low-angle", label: "Low angle", image: "/woman-in-jacket-low-angle.jpg" },
+  { id: "over-shoulder", label: "Over the shoulder", image: "/person-with-camera-over-shoulder.jpg" },
+  { id: "overhead", label: "Overhead", image: "/person-from-above-overhead.jpg" },
+  { id: "birds-eye", label: "Bird's eye view", image: "/person-with-camera-birds-eye-view.jpg" },
+]
+
+export default function CreatePage() {
+  const [activeTab, setActiveTab] = useState("video")
+  const [selectedAngle, setSelectedAngle] = useState("none")
+
+  return (
+    <div className="flex min-h-screen bg-[#0a0a0a] text-white">
+      <Sidebar />
+
+      <main className="flex-1">
+        <header className="flex items-center justify-end gap-3 p-6 border-b border-neutral-800">
+          <Button className="bg-transparent border border-neutral-700 hover:bg-neutral-800 text-white">
+            <Plus className="w-4 h-4 mr-2" />
+            Start New Project
+          </Button>
+          <Avatar className="w-10 h-10">
+            <AvatarImage src="/diverse-user-avatars.png" />
+            <AvatarFallback>U</AvatarFallback>
+          </Avatar>
+        </header>
+
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-88px)] p-8">
+          <div className="max-w-3xl w-full space-y-8">
+            <div className="text-center space-y-3">
+              <h1 className="text-5xl font-bold text-balance">Start creating today</h1>
+              <p className="text-neutral-400 text-lg">Turn your prompt into a image audio or video</p>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-neutral-900 border border-neutral-800">
+                <TabsTrigger
+                  value="video"
+                  className="data-[state=active]:bg-transparent data-[state=active]:text-white"
+                >
+                  Video
+                </TabsTrigger>
+                <TabsTrigger
+                  value="image"
+                  className="data-[state=active]:bg-transparent data-[state=active]:text-white"
+                >
+                  Image
+                </TabsTrigger>
+                <TabsTrigger
+                  value="audio"
+                  className="data-[state=active]:bg-transparent data-[state=active]:text-white"
+                >
+                  Audio
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="video" className="mt-8">
+                <Card className="bg-neutral-900 border-neutral-800 p-8 space-y-6">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe what you want to create..."
+                      className="min-h-[140px] bg-neutral-950 border-blue-500 text-white placeholder:text-neutral-500 resize-none pr-12"
+                      defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  we need to have the options to create images or videos or audio in this area"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="absolute bottom-3 right-3 text-neutral-400 hover:text-white"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <Undo2 className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Star className="w-4 h-4 mr-2" />
+                        LTXV
+                      </Button>
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Clock className="w-4 h-4 mr-2" />
+                        60 Sec
+                      </Button>
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Music className="w-4 h-4 mr-2" />
+                        On
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base">
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M12 3L4 9L12 15L20 9L12 3Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M4 15L12 21L20 15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Generate Video
+                  </Button>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="image" className="mt-8">
+                <Card className="bg-neutral-900 border-neutral-800 p-8 space-y-6">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe what you want to create..."
+                      className="min-h-[140px] bg-neutral-950 border-blue-500 text-white placeholder:text-neutral-500 resize-none pr-12"
+                      defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  we need to have the options to create images or videos or audio in this area"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="absolute bottom-3 right-3 text-neutral-400 hover:text-white"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </Button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Star className="w-4 h-4 mr-2" />
+                        Flux
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
+                          >
+                            <User className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 bg-neutral-900 border-neutral-800 p-4" align="end">
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-white">Angle</h4>
+                            <div className="grid grid-cols-3 gap-3">
+                              {angleOptions.map((option) => (
+                                <button
+                                  key={option.id}
+                                  onClick={() => setSelectedAngle(option.id)}
+                                  className={`flex flex-col items-center gap-2 p-2 rounded-lg border transition-colors ${
+                                    selectedAngle === option.id
+                                      ? "border-blue-500 bg-neutral-800"
+                                      : "border-neutral-700 hover:border-neutral-600"
+                                  }`}
+                                >
+                                  <div className="w-16 h-16 rounded-lg bg-neutral-800 flex items-center justify-center overflow-hidden">
+                                    {option.image ? (
+                                      <Image
+                                        src={option.image || "/placeholder.svg"}
+                                        alt={option.label}
+                                        width={64}
+                                        height={64}
+                                        className="object-cover w-full h-full"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded-full border-4 border-red-500 relative">
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <div className="w-full h-0.5 bg-red-500 rotate-45" />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-neutral-300 text-center leading-tight">
+                                    {option.label}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base">
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M12 3L4 9L12 15L20 9L12 3Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M4 15L12 21L20 15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Generate Image
+                  </Button>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="audio" className="mt-8">
+                <Card className="bg-neutral-900 border-neutral-800 p-8 space-y-6">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe what you want to create..."
+                      className="min-h-[140px] bg-neutral-950 border-blue-500 text-white placeholder:text-neutral-500 resize-none pr-12"
+                      defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  we need to have the options to create images or videos or audio in this area"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="absolute bottom-3 right-3 text-neutral-400 hover:text-white"
+                    >
+                      <Mic className="w-5 h-5" />
+                    </Button>
+                  </div>
+
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base">
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M12 3L4 9L12 15L20 9L12 3Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M4 15L12 21L20 15"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Generate Audio
+                  </Button>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}

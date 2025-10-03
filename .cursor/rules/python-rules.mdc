@@ -1,7 +1,6 @@
 ---
-description:
-globs:
-alwaysApply: true
+globs: services/backend/**
+alwaysApply: false
 ---
 # You must always use the already existing and configured virtual environment inside the .venv folder using the command: "source .venv/bin/activate" before you run any python related cli commands. 
 
