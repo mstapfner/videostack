@@ -13,6 +13,7 @@ class Storyboard(BasicModel, table=True):
 
     user_id: Optional[str] = Field(default=None, foreign_key="users.id", index=True)
     initial_line: str = Field(..., index=True)  # Required field - the initial concept/line for the storyboard
+    storyline: Optional[str] = Field(default=None)  # The expanded storyline/story content
     title: Optional[str] = Field(default=None, index=True)  # Optional title for the storyboard
     status: str = Field(default="draft", index=True)  # draft, in_progress, completed
 

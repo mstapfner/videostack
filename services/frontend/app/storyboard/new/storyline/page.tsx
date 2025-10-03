@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, Sparkles, RefreshCw, Edit3, Check, X } from "lucide-react"
+import { ArrowLeft, Sparkles, RefreshCw, Edit3, Check, X, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { createStoryboard, generateStoryboardScenes } from "@/lib/api-client"
+import { useStoryboardStore } from "@/store/storyboard"
 
 interface StoryboardOption {
   title: string;
@@ -23,14 +25,26 @@ interface StoryboardOptions {
 export default function StorylinePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { initializeFromLLM, setOriginalPrompt } = useStoryboardStore()
   const [projectContent, setProjectContent] = useState("")
   const [projectTitle, setProjectTitle] = useState("")
   const [selectedStoryline, setSelectedStoryline] = useState(0)
   const [storylines, setStorylines] = useState<StoryboardOption[]>([])
   const [editingLeft, setEditingLeft] = useState(false)
   const [editingRight, setEditingRight] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [originalConcept, setOriginalConcept] = useState("")
 
   useEffect(() => {
+    // Get the original concept from localStorage
+    if (typeof window !== 'undefined') {
+      const concept = localStorage.getItem('storyboard_original_concept')
+      if (concept) {
+        setOriginalConcept(concept)
+        setOriginalPrompt(concept)
+      }
+    }
+
     const optionsParam = searchParams.get('options')
     if (optionsParam) {
       try {
@@ -130,9 +144,38 @@ export default function StorylinePage() {
     setEditingLeft(false)
   }
 
-  const handleGenerateStoryboard = () => {
-    // Navigate to the editor page
-    router.push('/storyboard/new/editor')
+  const handleGenerateStoryboard = async () => {
+    if (!projectContent.trim() || !projectTitle.trim()) {
+      console.error('Project content and title are required');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Step 1: Create a storyboard in the backend
+      // - initial_line: Original concept from the concept page
+      // - storyline: The expanded storyline content (generated and possibly edited)
+      // - title: The project title
+      const storyboard = await createStoryboard(
+        originalConcept || projectContent, 
+        projectTitle,
+        projectContent // This is the expanded storyline
+      );
+      
+      // Step 2: Generate scenes from the LLM using the selected/edited storyline
+      const llmData = await generateStoryboardScenes(projectContent);
+      
+      // Step 3: Initialize the storyboard with LLM data
+      await initializeFromLLM(storyboard.id, llmData);
+      
+      // Navigate to the editor page
+      router.push('/storyboard/new/editor');
+    } catch (error) {
+      console.error('Failed to generate storyboard:', error);
+      // You might want to show an error toast here
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   return (
@@ -299,9 +342,22 @@ export default function StorylinePage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <Button onClick={handleGenerateStoryboard} className="bg-blue-600 hover:bg-blue-700 text-white px-8">
-            <Sparkles className="w-4 h-4 mr-2" />
-            Generate Storyboard
+          <Button 
+            onClick={handleGenerateStoryboard} 
+            disabled={isGenerating || !projectContent.trim() || !projectTitle.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Storyboard
+              </>
+            )}
           </Button>
         </div>
       </main>

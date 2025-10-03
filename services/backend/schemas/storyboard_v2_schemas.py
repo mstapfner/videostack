@@ -62,6 +62,7 @@ class StoryboardSceneResponse(BaseModel):
 class StoryboardCreateRequest(BaseModel):
     """Request schema for creating a new storyboard."""
     initial_line: str = Field(..., min_length=1, max_length=2000, description="Initial concept/line for the storyboard")
+    storyline: Optional[str] = Field(None, max_length=10000, description="Expanded storyline/story content")
     title: Optional[str] = Field(None, max_length=500, description="Title for the storyboard")
     status: Optional[str] = Field("draft", pattern="^(draft|in_progress|completed)$", description="Storyboard status")
     scenes: Optional[List[StoryboardSceneRequest]] = Field(default=None, description="Scenes in this storyboard")
@@ -70,6 +71,7 @@ class StoryboardCreateRequest(BaseModel):
 class StoryboardUpdateRequest(BaseModel):
     """Request schema for updating a storyboard."""
     initial_line: Optional[str] = Field(None, min_length=1, max_length=2000, description="Initial concept/line for the storyboard")
+    storyline: Optional[str] = Field(None, max_length=10000, description="Expanded storyline/story content")
     title: Optional[str] = Field(None, max_length=500, description="Title for the storyboard")
     status: Optional[str] = Field(None, pattern="^(draft|in_progress|completed)$", description="Storyboard status")
 
@@ -79,6 +81,7 @@ class StoryboardResponse(BaseModel):
     id: str
     user_id: Optional[str]
     initial_line: str
+    storyline: Optional[str]
     title: Optional[str]
     status: str
     scenes: List[StoryboardSceneResponse]
@@ -94,6 +97,7 @@ class StoryboardSummaryResponse(BaseModel):
     id: str
     user_id: Optional[str]
     initial_line: str
+    storyline: Optional[str]
     title: Optional[str]
     status: str
     scene_count: int

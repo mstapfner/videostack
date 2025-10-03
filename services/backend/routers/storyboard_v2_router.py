@@ -63,6 +63,7 @@ def _storyboard_to_response(storyboard: Storyboard) -> StoryboardResponse:
         id=str(storyboard.id),
         user_id=storyboard.user_id,
         initial_line=storyboard.initial_line,
+        storyline=storyboard.storyline,
         title=storyboard.title,
         status=storyboard.status,
         scenes=scenes,
@@ -125,6 +126,7 @@ async def create_storyboard(
         new_storyboard = Storyboard(
             user_id=current_user.database_id,
             initial_line=request.initial_line,
+            storyline=request.storyline,
             title=request.title,
             status=request.status or "draft",
         )
@@ -202,6 +204,7 @@ async def get_user_storyboards(
                 id=str(sb.id),
                 user_id=sb.user_id,
                 initial_line=sb.initial_line,
+                storyline=sb.storyline,
                 title=sb.title,
                 status=sb.status,
                 scene_count=len(sb.scenes),
@@ -296,6 +299,8 @@ async def update_storyboard(
         # Update fields if provided
         if request.initial_line is not None:
             storyboard.initial_line = request.initial_line
+        if request.storyline is not None:
+            storyboard.storyline = request.storyline
         if request.title is not None:
             storyboard.title = request.title
         if request.status is not None:

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -31,9 +31,12 @@ export default function StoryboardEditor() {
   const router = useRouter();
   const pathname = usePathname();
   const { 
+    storyboardId,
     originalPrompt,
+    title,
     scenes,
     isLoading, 
+    loadStoryboard,
     addScene,
     deleteScene,
     updateScene,
@@ -52,33 +55,42 @@ export default function StoryboardEditor() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVideoGenerationModalOpen, setIsVideoGenerationModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const lastLoadedIdRef = useRef<string | null>(null);
 
   // Prevent hydration mismatch by only rendering DnD components after mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Polling effect - poll every 500ms when on editor page
+  // Load storyboard when we have an ID (loads new storyboard if ID changes)
   useEffect(() => {
-    // Only start polling if we're actually on the editor route
-    if (!pathname.includes('/storyboard/new/editor')) {
+    if (storyboardId && storyboardId !== lastLoadedIdRef.current && !isLoading) {
+      lastLoadedIdRef.current = storyboardId;
+      loadStoryboard(storyboardId);
+    }
+  }, [storyboardId, isLoading, loadStoryboard]);
+
+  // Polling is disabled by default since we make real-time updates
+  // Only enable polling if you need to check for async operations (like video generation)
+  // Uncomment the code below if you need polling:
+  /*
+  useEffect(() => {
+    if (!pathname.includes('/storyboard/new/editor') || !storyboardId) {
       stopPolling();
       return;
     }
 
-    // Start polling when component mounts
     startPolling();
-
     const pollInterval = setInterval(() => {
       pollStoryboard();
-    }, 500);
+    }, 10000); // Poll every 10 seconds instead of 2
 
-    // Cleanup: stop polling and clear interval
     return () => {
       clearInterval(pollInterval);
       stopPolling();
     };
-  }, [pollStoryboard, startPolling, stopPolling, pathname]);
+  }, [pollStoryboard, startPolling, stopPolling, pathname, storyboardId]);
+  */
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -178,7 +190,7 @@ export default function StoryboardEditor() {
             <div className="h-8 w-px bg-neutral-700" />
             <Link href="/storyboard/new/storyline" className="flex items-center gap-2 text-white hover:text-neutral-300">
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-medium">Back to Storyline</span>
+              <span className="font-medium">{title || 'Untitled Storyboard'}</span>
             </Link>
             <div className="flex items-center gap-2 ml-4 text-sm">
               <Link href="/storyboard/new/concept" className="text-neutral-400 hover:text-white">Concept</Link>

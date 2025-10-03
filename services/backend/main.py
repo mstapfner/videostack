@@ -96,7 +96,7 @@ app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 app.include_router(asset_router, prefix="/api/assets", tags=["assets"])
 app.include_router(generation_router, prefix="/api/generations", tags=["generations"])
 app.include_router(story_board_router, prefix="/api/storyboard", tags=["storyboard"])
-app.include_router(storyboard_v2_router, prefix="/api/v2/storyboards", tags=["storyboards-v2"])
+app.include_router(storyboard_v2_router, prefix="/api/storyboard_v2", tags=["storyboards-v2"])
 
 
 

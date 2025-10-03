@@ -14,7 +14,7 @@ export default function ConceptPage() {
   const router = useRouter()
   const { isAuthenticated, login, isLoading: authLoading } = useAuth()
   const [concept, setConcept] = useState(
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    "",
   )
   const [isLoading, setIsLoading] = useState(false)
 
@@ -32,6 +32,11 @@ export default function ConceptPage() {
     setIsLoading(true)
     try {
       const storyboardOptions = await generateStoryboardOptions(concept)
+
+      // Store the original concept in localStorage for reference
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('storyboard_original_concept', concept)
+      }
 
       // Encode the storyboard options as a URL parameter
       const encodedOptions = encodeURIComponent(JSON.stringify(storyboardOptions))

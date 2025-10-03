@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as api from '@/lib/api-client';
 
 export interface StoryboardCard {
   id: string;
@@ -15,26 +16,36 @@ export interface Scene {
 }
 
 interface StoryboardState {
+  storyboardId: string | null;
   originalPrompt: string;
+  storyline: string | null;
+  title: string | null;
   scenes: Scene[];
   isLoading: boolean;
   isPolling: boolean;
   
   // Actions
-  addScene: (index: number) => void;
-  deleteScene: (sceneId: string) => void;
-  updateScene: (sceneId: string, updates: Partial<Scene>) => void;
+  setStoryboardId: (id: string) => void;
+  setOriginalPrompt: (prompt: string) => void;
+  setStoryline: (storyline: string) => void;
+  setTitle: (title: string) => void;
+  loadStoryboard: (storyboardId: string) => Promise<void>;
+  initializeFromLLM: (storyboardId: string, llmData: api.StoryBoardFromLLM) => Promise<void>;
   
-  addShotToScene: (sceneId: string, index: number) => void;
-  deleteShot: (sceneId: string, shotId: string) => void;
-  updateShot: (sceneId: string, shotId: string, updates: Partial<StoryboardCard>) => void;
+  addScene: (index: number) => Promise<void>;
+  deleteScene: (sceneId: string) => Promise<void>;
+  updateScene: (sceneId: string, updates: Partial<Scene>) => Promise<void>;
+  
+  addShotToScene: (sceneId: string, index: number) => Promise<void>;
+  deleteShot: (sceneId: string, shotId: string) => Promise<void>;
+  updateShot: (sceneId: string, shotId: string, updates: Partial<StoryboardCard>) => Promise<void>;
   
   reorderScenes: (activeId: string, overId: string) => void;
   reorderShotsInScene: (sceneId: string, activeId: string, overId: string) => void;
   
   generateShot: (prompt: string, shotId: string) => Promise<void>;
   generateVideo: () => void;
-  pollStoryboard: () => void;
+  pollStoryboard: () => Promise<void>;
   startPolling: () => void;
   stopPolling: () => void;
   resetStoryboard: () => void;
@@ -135,76 +146,241 @@ const initialScenes: Scene[] = [
 ];
 
 export const useStoryboardStore = create<StoryboardState>((set, get) => ({
-  originalPrompt: 'A thrilling sci-fi adventure in a futuristic city',
-  scenes: initialScenes,
+  storyboardId: null,
+  originalPrompt: '',
+  storyline: null,
+  title: null,
+  scenes: [],
   isLoading: false,
   isPolling: false,
 
-  addScene: (index) => {
-    const newScene = generateMockScene(get().scenes.length);
-    set((state) => {
-      const newScenes = [...state.scenes];
-      newScenes.splice(index, 0, newScene);
-      return { scenes: newScenes };
-    });
+  setStoryboardId: (id) => {
+    set({ storyboardId: id });
   },
 
-  deleteScene: (sceneId) => {
-    set((state) => ({
-      scenes: state.scenes.filter((scene) => scene.id !== sceneId),
-    }));
+  setOriginalPrompt: (prompt) => {
+    set({ originalPrompt: prompt });
   },
 
-  updateScene: (sceneId, updates) => {
-    set((state) => ({
-      scenes: state.scenes.map((scene) =>
-        scene.id === sceneId ? { ...scene, ...updates } : scene
-      ),
-    }));
+  setStoryline: (storyline) => {
+    set({ storyline });
   },
 
-  addShotToScene: (sceneId, index) => {
-    const newShot = generateMockShot(Date.now());
-    set((state) => ({
-      scenes: state.scenes.map((scene) => {
-        if (scene.id === sceneId) {
-          const newShots = [...scene.shots];
-          newShots.splice(index, 0, newShot);
-          return { ...scene, shots: newShots };
+  setTitle: (title) => {
+    set({ title });
+  },
+
+  loadStoryboard: async (storyboardId) => {
+    try {
+      set({ isLoading: true });
+      const storyboard = await api.getStoryboard(storyboardId);
+      
+      // Convert backend format to frontend format
+      const scenes: Scene[] = storyboard.scenes.map((scene) => ({
+        id: scene.id,
+        name: scene.description || `Scene ${scene.scene_number}`,
+        shots: scene.shots.map((shot) => ({
+          id: shot.id,
+          prompt: shot.user_prompt,
+          image_url: shot.start_image_url,
+          video_url: shot.video_url,
+          duration_in_seconds: 5, // Default duration
+        })),
+      }));
+
+      set({
+        storyboardId,
+        originalPrompt: storyboard.initial_line,
+        storyline: storyboard.storyline || null,
+        title: storyboard.title || null,
+        scenes,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Failed to load storyboard:', error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  initializeFromLLM: async (storyboardId, llmData) => {
+    try {
+      set({ isLoading: true, storyboardId });
+
+      // Add scenes and shots to the backend storyboard
+      for (const llmScene of llmData.scenes) {
+        const backendScene = await api.addSceneToStoryboard(
+          storyboardId,
+          llmScene.position + 1,
+          llmScene.name,
+          llmScene.shots.reduce((acc, shot) => acc + (shot.duration_in_seconds || 5), 0)
+        );
+
+        // Add shots to this scene
+        for (const llmShot of llmScene.shots) {
+          await api.addShotToScene(
+            storyboardId,
+            backendScene.id,
+            llmShot.position + 1,
+            llmShot.prompt,
+            llmShot.image_url,
+            undefined
+          );
         }
-        return scene;
-      }),
-    }));
+      }
+
+      // Reload the storyboard to get the full updated data
+      await get().loadStoryboard(storyboardId);
+    } catch (error) {
+      console.error('Failed to initialize storyboard from LLM:', error);
+      set({ isLoading: false });
+      throw error;
+    }
   },
 
-  deleteShot: (sceneId, shotId) => {
-    set((state) => ({
-      scenes: state.scenes.map((scene) => {
-        if (scene.id === sceneId) {
-          return {
-            ...scene,
-            shots: scene.shots.filter((shot) => shot.id !== shotId),
-          };
-        }
-        return scene;
-      }),
-    }));
+  addScene: async (index) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      const sceneNumber = index + 1;
+      await api.addSceneToStoryboard(storyboardId, sceneNumber, `Scene ${sceneNumber}`, 15);
+      
+      // Reload storyboard
+      await get().loadStoryboard(storyboardId);
+    } catch (error) {
+      console.error('Failed to add scene:', error);
+    }
   },
 
-  updateShot: (sceneId, shotId, updates) => {
-    set((state) => ({
-      scenes: state.scenes.map((scene) => {
-        if (scene.id === sceneId) {
-          return {
-            ...scene,
-            shots: scene.shots.map((shot) =>
-              shot.id === shotId ? { ...shot, ...updates } : shot
-            ),
-          };
-        }
-        return scene;
-      }),
-    }));
+  deleteScene: async (sceneId) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      await api.deleteScene(storyboardId, sceneId);
+      
+      // Update local state immediately
+      set((state) => ({
+        scenes: state.scenes.filter((scene) => scene.id !== sceneId),
+      }));
+    } catch (error) {
+      console.error('Failed to delete scene:', error);
+    }
+  },
+
+  updateScene: async (sceneId, updates) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      await api.updateScene(storyboardId, sceneId, {
+        description: updates.name,
+      });
+      
+      // Update local state immediately
+      set((state) => ({
+        scenes: state.scenes.map((scene) =>
+          scene.id === sceneId ? { ...scene, ...updates } : scene
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to update scene:', error);
+    }
+  },
+
+  addShotToScene: async (sceneId, index) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      const shotNumber = index + 1;
+      await api.addShotToScene(
+        storyboardId,
+        sceneId,
+        shotNumber,
+        'A cinematic shot',
+        undefined,
+        undefined
+      );
+      
+      // Reload storyboard
+      await get().loadStoryboard(storyboardId);
+    } catch (error) {
+      console.error('Failed to add shot:', error);
+    }
+  },
+
+  deleteShot: async (sceneId, shotId) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      await api.deleteShot(storyboardId, sceneId, shotId);
+      
+      // Update local state immediately
+      set((state) => ({
+        scenes: state.scenes.map((scene) => {
+          if (scene.id === sceneId) {
+            return {
+              ...scene,
+              shots: scene.shots.filter((shot) => shot.id !== shotId),
+            };
+          }
+          return scene;
+        }),
+      }));
+    } catch (error) {
+      console.error('Failed to delete shot:', error);
+    }
+  },
+
+  updateShot: async (sceneId, shotId, updates) => {
+    const { storyboardId } = get();
+    if (!storyboardId) {
+      console.error('No storyboard ID set');
+      return;
+    }
+
+    try {
+      await api.updateShot(storyboardId, sceneId, shotId, {
+        user_prompt: updates.prompt,
+        start_image_url: updates.image_url,
+        video_url: updates.video_url,
+      });
+      
+      // Update local state immediately
+      set((state) => ({
+        scenes: state.scenes.map((scene) => {
+          if (scene.id === sceneId) {
+            return {
+              ...scene,
+              shots: scene.shots.map((shot) =>
+                shot.id === shotId ? { ...shot, ...updates } : shot
+              ),
+            };
+          }
+          return scene;
+        }),
+      }));
+    } catch (error) {
+      console.error('Failed to update shot:', error);
+    }
   },
 
   reorderScenes: (activeId, overId) => {
@@ -220,6 +396,8 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
       
       return { scenes: newScenes };
     });
+    
+    // TODO: Persist reordering to backend
   },
 
   reorderShotsInScene: (sceneId, activeId, overId) => {
@@ -240,37 +418,36 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
         return scene;
       }),
     }));
+    
+    // TODO: Persist reordering to backend
   },
 
   generateShot: async (prompt, shotId) => {
-    // Mock implementation - in real app, this would call the API
-    console.log('Generating shot:', prompt, shotId);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // Update the shot with new image
     const sceneId = get().scenes.find(scene => 
       scene.shots.some(shot => shot.id === shotId)
     )?.id;
     
     if (sceneId) {
-      get().updateShot(sceneId, shotId, {
+      await get().updateShot(sceneId, shotId, {
         prompt,
-        image_url: '/placeholder.jpg',
       });
     }
   },
 
   generateVideo: () => {
     console.log('Generating video from storyboard');
-    // Mock implementation - in real app, this would call the API
+    // TODO: Implement video generation
   },
 
-  pollStoryboard: () => {
-    // Mock implementation - in real app, this would poll for updates
-    if (!get().isPolling) return;
-    console.log('Polling storyboard for updates');
+  pollStoryboard: async () => {
+    const { isPolling, storyboardId } = get();
+    if (!isPolling || !storyboardId) return;
+    
+    try {
+      await get().loadStoryboard(storyboardId);
+    } catch (error) {
+      console.error('Failed to poll storyboard:', error);
+    }
   },
 
   startPolling: () => {
@@ -283,7 +460,10 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
 
   resetStoryboard: () => {
     set({
+      storyboardId: null,
       originalPrompt: '',
+      storyline: null,
+      title: null,
       scenes: [],
       isLoading: false,
       isPolling: false,
