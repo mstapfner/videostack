@@ -4,6 +4,7 @@ from models.base_model import BasicModel
 
 if TYPE_CHECKING:
     from models.asset import Asset
+    from models.generation import Generation
 
 
 class User(BasicModel, table=True):
@@ -16,3 +17,6 @@ class User(BasicModel, table=True):
 
     # One-to-many relationship: User can have multiple assets
     assets: List["Asset"] = Relationship(back_populates="user")
+
+    # One-to-many relationship: User can have multiple generations
+    generations: List["Generation"] = Relationship(back_populates="user")

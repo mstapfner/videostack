@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, Literal
+from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 from models.base_model import BasicModel
 
@@ -12,8 +12,8 @@ class Asset(BasicModel, table=True):
 
     user_id: Optional[str] = Field(default=None, foreign_key="users.id", index=True)
     link: str = Field(..., index=True)  # Required field
-    type: Literal["image", "audio", "video"] = Field(..., index=True)  # Required enum field
-    status: Literal["active", "deleted"] = Field(default="active", index=True)  # Required enum field with default
+    type: str = Field(..., index=True)  # Required field - values: "image", "audio", "video"
+    status: str = Field(default="active", index=True)  # Required field with default - values: "active", "deleted"
 
     # Many-to-one relationship: Asset belongs to one user
     user: Optional["User"] = Relationship(back_populates="assets")
