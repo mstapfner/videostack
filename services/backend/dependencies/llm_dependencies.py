@@ -33,8 +33,8 @@ class StoryBoard(BaseModel):
 
 MASTER_PROMPT = (
     "You are a world-class cinematic video director. "
-    "Given the following user prompt, generate a detailed, creative, and visually rich description for an image."
-    "The prompt must be a single, flowing paragraph under 100 words. Descriptions must be literal and precise."
+    "Given the following user prompt, generate a detailed, creative, and visually rich description for every image in the storyboard."
+    "Each description must be a single, flowing paragraph under 100 words. Descriptions must be literal and precise."
     "It's important to keep the storyboardscenes to each other and the user prompt, so if one scene is based on the previous one, make sure to describe in the scene all relevant elements. "
     "If two shots are closely related to each other or referencing each other, you must group them into a single scene."
     "Scene counting starts at 0."
@@ -42,7 +42,7 @@ MASTER_PROMPT = (
     "User prompt: \"{user_prompt}\""
 )
 
-async def generate_storyboard(user_input: str): 
+async def generate_storyboard_scenes(user_input: str): 
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
@@ -62,10 +62,8 @@ async def generate_storyboard(user_input: str):
         }, 
         temperature=0.8
     )
-    print(response.choices[0].message.content)
     
     storyboard = StoryBoard.model_validate(json.loads(response.choices[0].message.content))
-    print(json.dumps(storyboard.model_dump(), indent=2))
     return storyboard
 
 

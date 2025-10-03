@@ -22,7 +22,8 @@
             "jinja": true,
             "justMyCode": false,
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/services/backend"
+                "PYTHONPATH": "${workspaceFolder}/services/backend",
+                "PYTHONUNBUFFERED": "1"
             },
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/services/backend"

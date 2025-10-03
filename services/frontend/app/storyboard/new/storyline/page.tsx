@@ -1,36 +1,134 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { ArrowLeft, Sparkles, RefreshCw } from "lucide-react"
+import { ArrowLeft, Sparkles, RefreshCw, Edit3, Check, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
-const loremParagraph =
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+interface StoryboardOption {
+  title: string;
+  content: string;
+}
+
+interface StoryboardOptions {
+  options: StoryboardOption[];
+}
+
 
 export default function StorylinePage() {
   const router = useRouter()
-  const [projectContent, setProjectContent] = useState(`${loremParagraph}\n\n${loremParagraph}\n\n${loremParagraph}`)
+  const searchParams = useSearchParams()
+  const [projectContent, setProjectContent] = useState("")
+  const [projectTitle, setProjectTitle] = useState("")
   const [selectedStoryline, setSelectedStoryline] = useState(0)
+  const [storylines, setStorylines] = useState<StoryboardOption[]>([])
+  const [editingLeft, setEditingLeft] = useState(false)
+  const [editingRight, setEditingRight] = useState(false)
 
-  const storylines = [
-    {
-      id: 0,
-      title: "Project Title",
-      description:
-        "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
-    },
-    {
-      id: 1,
-      title: "Alternative Storyline title 1",
-      description:
-        "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
-    },
-  ]
+  useEffect(() => {
+    const optionsParam = searchParams.get('options')
+    if (optionsParam) {
+      try {
+        const decodedOptions = decodeURIComponent(optionsParam)
+        const storyboardOptions: StoryboardOptions = JSON.parse(decodedOptions)
+        const options = storyboardOptions.options
+        setStorylines(options)
+        if (options.length > 0) {
+          setProjectTitle(options[0].title)
+          setProjectContent(options[0].content)
+        }
+      } catch (error) {
+        console.error('Failed to parse storyboard options:', error)
+        // Fallback to default storylines if parsing fails
+        setStorylines([
+          {
+            title: "Project Title",
+            content: "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
+          },
+          {
+            title: "Alternative Storyline title 1",
+            content: "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
+          },
+        ])
+        setProjectTitle("Project Title")
+        setProjectContent("Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)")
+      }
+    } else {
+      // Fallback if no options provided
+      setStorylines([
+        {
+          title: "Project Title",
+          content: "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
+        },
+        {
+          title: "Alternative Storyline title 1",
+          content: "Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)",
+        },
+      ])
+      setProjectTitle("Project Title")
+      setProjectContent("Organizations are the top level entities that are used to group your applications and manage organization specific resource (e.g., databases, cache, queues)")
+    }
+  }, [searchParams])
+
+  const truncateText = (text: string, maxLength: number = 200) => {
+    if (text.length <= maxLength) return text
+    return text.slice(0, maxLength) + "..."
+  }
+
+  const handleLeftTitleEdit = () => {
+    setEditingLeft(!editingLeft)
+  }
+
+  const handleLeftTitleSave = () => {
+    if (projectTitle.trim()) {
+      const updatedStorylines = [...storylines]
+      updatedStorylines[0] = { ...updatedStorylines[0], title: projectTitle }
+      setStorylines(updatedStorylines)
+      setEditingLeft(false)
+    }
+  }
+
+  const handleLeftTitleCancel = () => {
+    setProjectTitle(storylines[0]?.title || "Project Title")
+    setEditingLeft(false)
+  }
+
+  const handleRightOptionEdit = (index: number) => {
+    setSelectedStoryline(index)
+    setEditingRight(!editingRight)
+  }
+
+  const handleRightOptionSave = () => {
+    const updatedStorylines = [...storylines]
+    // Update the content of the currently selected storyline
+    if (updatedStorylines[selectedStoryline]) {
+      updatedStorylines[selectedStoryline] = {
+        ...updatedStorylines[selectedStoryline],
+        content: projectContent
+      }
+      setStorylines(updatedStorylines)
+    }
+    setEditingRight(false)
+  }
+
+  const handleRightOptionCancel = () => {
+    if (storylines[selectedStoryline]) {
+      setProjectContent(storylines[selectedStoryline].content)
+    }
+    setEditingRight(false)
+  }
+
+  const handleStorylineSelect = (index: number) => {
+    setSelectedStoryline(index)
+    setProjectContent(storylines[index]?.content || "")
+    setEditingRight(false)
+    setEditingLeft(false)
+  }
 
   const handleGenerateStoryboard = () => {
     // Navigate to next step or show success
@@ -67,7 +165,45 @@ export default function StorylinePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {/* Left Column - Project Content */}
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-semibold">Project Title</h2>
+            <div className="flex items-center gap-3">
+              {editingLeft ? (
+                <>
+                  <Input
+                    value={projectTitle}
+                    onChange={(e) => setProjectTitle(e.target.value)}
+                    className="text-2xl font-semibold bg-neutral-900 border border-neutral-800 text-white"
+                    placeholder="Project Title"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleLeftTitleSave}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleLeftTitleCancel}
+                    className="border-neutral-700 hover:bg-neutral-800 text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-semibold">{projectTitle}</h2>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleLeftTitleEdit}
+                    className="text-neutral-400 hover:text-white"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
             <div className="relative">
               <Textarea
                 value={projectContent}
@@ -82,18 +218,63 @@ export default function StorylinePage() {
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold">Alternative Storylines</h2>
             <div className="space-y-4">
-              {storylines.map((storyline) => (
+              {storylines.slice(0, 2).map((storyline, index) => (
                 <Card
-                  key={storyline.id}
-                  onClick={() => setSelectedStoryline(storyline.id)}
+                  key={index}
+                  onClick={() => handleStorylineSelect(index)}
                   className={`p-6 cursor-pointer transition-all ${
-                    selectedStoryline === storyline.id
+                    selectedStoryline === index
                       ? "bg-neutral-900 border-2 border-blue-500"
                       : "bg-neutral-900 border border-neutral-800 hover:border-neutral-700"
                   }`}
                 >
-                  <h3 className="text-lg font-semibold mb-3">{storyline.title}</h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">{storyline.description}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">{storyline.title}</h3>
+                    {selectedStoryline === index && (
+                      <>
+                        {editingRight ? (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRightOptionSave()
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRightOptionCancel()
+                              }}
+                              className="border-neutral-700 hover:bg-neutral-800 text-white"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRightOptionEdit(index)
+                            }}
+                            className="text-neutral-400 hover:text-white"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <p className="text-sm text-neutral-400 leading-relaxed">
+                    {truncateText(storyline.content, 200)}
+                  </p>
                 </Card>
               ))}
 
