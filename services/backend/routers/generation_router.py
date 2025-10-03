@@ -12,7 +12,7 @@ from schemas.generation_schemas import (
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
-from services.backend.dependencies.runware_dependencies import generate_image, generate_video
+from dependencies.runware_dependencies import generate_image, generate_video
 
 generation_router = r = APIRouter()
 

@@ -2,7 +2,7 @@
 import asyncio
 from runware import Runware, IImageInference, IVideoInference
 
-from services.backend.config import RUNWARE_API_KEY
+from config import RUNWARE_API_KEY
 
 # SDK reads RUNWARE_API_KEY automatically
 runware = Runware(api_key=RUNWARE_API_KEY)
