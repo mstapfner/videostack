@@ -1,4 +1,5 @@
 """Generation router for image and video generation."""
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlmodel import Session, select, desc
@@ -12,8 +13,9 @@ from schemas.generation_schemas import (
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
-from dependencies.runware_dependencies import generate_image, generate_video
+from dependencies.runware_dependencies import generate_image, generate_video, generate_audio
 
+logger = logging.getLogger(__name__)
 generation_router = r = APIRouter()
 
 
@@ -24,7 +26,7 @@ async def create_generation(
     session: Session = Depends(get_session),
 ):
     """
-    Create a new generation request for image or video generation.
+    Create a new generation request for image, video, or audio generation.
 
     Args:
         request: Generation request with prompt and optional frame URLs
@@ -60,9 +62,8 @@ async def create_generation(
             height = 480
             duration = 5
             fps = 24
-            output_format = "mp4"
+            output_format = "MP4"
             output_quality = 85
-            provider_settings = {"bytedance": {"cameraFixed": False}}
             
             generated_content_url = await generate_video(
                 prompt=request.prompt,
@@ -73,7 +74,6 @@ async def create_generation(
                 fps=fps,
                 output_format=output_format,
                 output_quality=output_quality,
-                provider_settings=provider_settings,
             )
             
             # Create new generation with the generated content URL
@@ -87,17 +87,72 @@ async def create_generation(
                 generated_content_url=generated_content_url,
             )
             
+        elif request.generation_type == "audio":
+            # Audio generation parameters
+            model = "elevenlabs:1@1"
+            duration = request.duration if request.duration else 10
+            output_format = "MP3"
+            bitrate = 128
+            sample_rate = 44100
+            
+            print(f"\n🎵 ROUTER: Starting audio generation for prompt: {request.prompt[:50]}...")
+            print(f"🎵 ROUTER: User ID: {current_user.database_id}")
+            print(f"🎵 ROUTER: Duration: {duration} seconds")
+            
+            generated_content_url = await generate_audio(
+                prompt=request.prompt,
+                model=model,
+                duration=duration,
+                output_format=output_format,
+                bitrate=bitrate,
+                sample_rate=sample_rate,
+            )
+            
+            print(f"🎵 ROUTER: Audio generation completed. URL: {generated_content_url}")
+            print(f"🎵 ROUTER: URL type: {type(generated_content_url)}")
+            print(f"🎵 ROUTER: URL is None: {generated_content_url is None}")
+            print(f"🎵 ROUTER: URL bool: {bool(generated_content_url)}")
+            
+            if not generated_content_url:
+                print(f"❌ ROUTER: No URL returned, raising exception")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Audio generation failed: No URL returned",
+                )
+            
+            print(f"✅ ROUTER: URL validated, creating generation record")
+            
+            # Create new generation with the generated content URL
+            new_generation = Generation(
+                user_id=current_user.database_id,
+                prompt=request.prompt,
+                first_frame=request.first_frame,
+                last_frame=request.last_frame,
+                generation_type=request.generation_type,
+                status="completed",
+                generated_content_url=generated_content_url,
+            )
+            
+            print(f"✅ ROUTER: Created generation record (not saved yet)")
+            
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid generation type: {request.generation_type}",
             )
 
+        print(f"💾 ROUTER: Adding generation to session...")
         session.add(new_generation)
+        
+        print(f"💾 ROUTER: Committing to database...")
         session.commit()
+        
+        print(f"💾 ROUTER: Refreshing from database...")
         session.refresh(new_generation)
 
-        return GenerationResponse(
+        print(f"💾 ROUTER: Saved to database - ID: {new_generation.id}, Type: {new_generation.generation_type}, URL: {new_generation.generated_content_url}")
+
+        response = GenerationResponse(
             id=str(new_generation.id),
             user_id=new_generation.user_id,
             prompt=new_generation.prompt,
@@ -110,6 +165,12 @@ async def create_generation(
             creation_date=new_generation.creation_date.isoformat() if new_generation.creation_date else "",
             updated_date=new_generation.updated_date.isoformat() if new_generation.updated_date else "",
         )
+        
+        print(f"📤 ROUTER: Created response object")
+        print(f"📤 ROUTER: Response URL: {response.generated_content_url}")
+        print(f"📤 ROUTER: Response dict: {response.model_dump()}")
+        print(f"📤 ROUTER: Returning response to frontend\n")
+        return response
 
     except HTTPException:
         raise

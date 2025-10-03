@@ -9,7 +9,8 @@ class GenerationRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000, description="Text prompt for generation")
     first_frame: Optional[str] = Field(None, description="Optional URL to first frame image")
     last_frame: Optional[str] = Field(None, description="Optional URL to last frame image")
-    generation_type: str = Field(..., pattern="^(image|video)$", description="Type of generation: 'image' or 'video'")
+    generation_type: str = Field(..., pattern="^(image|video|audio)$", description="Type of generation: 'image', 'video', or 'audio'")
+    duration: Optional[int] = Field(None, ge=10, le=300, description="Duration in seconds for audio generation (10-300 seconds)")
 
 
 class GenerationResponse(BaseModel):

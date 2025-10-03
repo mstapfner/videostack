@@ -4,13 +4,15 @@ import { Sidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2 } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
-import { createImageGeneration, createVideoGeneration } from "@/lib/api-client"
+import { createImageGeneration, createVideoGeneration, createAudioGeneration } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
 
 const angleOptions = [
@@ -27,9 +29,12 @@ export default function CreatePage() {
   const [selectedAngle, setSelectedAngle] = useState("none")
   const [prompt, setPrompt] = useState("")
   const [videoPrompt, setVideoPrompt] = useState("")
+  const [audioPrompt, setAudioPrompt] = useState("")
+  const [audioDuration, setAudioDuration] = useState(10)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null)
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
 
   const { isAuthenticated } = useAuth()
@@ -117,6 +122,57 @@ export default function CreatePage() {
     } catch (error) {
       console.error('Error creating video generation:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate video'
+      setGenerationError(errorMessage)
+      setIsGenerating(false)
+    }
+  }
+
+  const handleAudioGeneration = async () => {
+    if (!audioPrompt.trim()) {
+      setGenerationError("Please enter a prompt for audio generation")
+      return
+    }
+
+    // Validate duration
+    if (audioDuration < 10 || audioDuration > 300) {
+      setGenerationError("Duration must be between 10 and 300 seconds")
+      return
+    }
+
+    // Check authentication more thoroughly
+    const token = localStorage.getItem('access_token')
+    if (!token || !isAuthenticated) {
+      setGenerationError("Please log in to generate audio")
+      return
+    }
+
+    console.log('Starting audio generation with authentication check:', {
+      hasToken: !!token,
+      isAuthenticated,
+      promptLength: audioPrompt.length,
+      duration: audioDuration
+    })
+
+    setIsGenerating(true)
+    setGenerationError(null)
+    setGeneratedAudioUrl(null)
+
+    try {
+      const response = await createAudioGeneration(audioPrompt, audioDuration)
+      console.log('Audio generation completed successfully:', response)
+
+      // Set the generated audio URL directly from the response
+      if (response.generated_content_url) {
+        setGeneratedAudioUrl(response.generated_content_url)
+        console.log('Audio URL received:', response.generated_content_url)
+      } else {
+        setGenerationError('Generation completed but no audio URL was returned')
+      }
+
+      setIsGenerating(false)
+    } catch (error) {
+      console.error('Error creating audio generation:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio'
       setGenerationError(errorMessage)
       setIsGenerating(false)
     }
@@ -469,11 +525,28 @@ export default function CreatePage() {
 
               <TabsContent value="audio" className="mt-8">
                 <Card className="bg-neutral-900 border-neutral-800 p-8 space-y-6">
+                  {generatedAudioUrl && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-center">Generated Audio</h3>
+                      <div className="relative w-full max-w-2xl mx-auto">
+                        <audio
+                          src={generatedAudioUrl}
+                          controls
+                          className="w-full rounded-lg border border-neutral-700"
+                          onError={() => setGenerationError("Failed to load generated audio")}
+                        >
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="relative">
                     <Textarea
                       placeholder="Describe what you want to create..."
                       className="min-h-[140px] bg-neutral-950 border-blue-500 text-white placeholder:text-neutral-500 resize-none pr-12"
-                      defaultValue="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.  we need to have the options to create images or videos or audio in this area"
+                      value={audioPrompt}
+                      onChange={(e) => setAudioPrompt(e.target.value)}
                     />
                     <Button
                       size="icon"
@@ -484,24 +557,88 @@ export default function CreatePage() {
                     </Button>
                   </div>
 
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base">
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M12 3L4 9L12 15L20 9L12 3Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M4 15L12 21L20 15"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Generate Audio
+                  <div className="space-y-2">
+                    <Label htmlFor="audio-duration" className="text-sm font-medium text-neutral-300">
+                      Duration (seconds)
+                    </Label>
+                    <Input
+                      id="audio-duration"
+                      type="number"
+                      min={10}
+                      max={300}
+                      value={audioDuration}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 10
+                        setAudioDuration(Math.min(300, Math.max(10, value)))
+                      }}
+                      className="bg-neutral-950 border-neutral-700 text-white"
+                      placeholder="Enter duration (10-300 seconds)"
+                    />
+                    <p className="text-xs text-neutral-500">
+                      Enter a value between 10 and 300 seconds
+                    </p>
+                  </div>
+
+                  {generationError && (
+                    <div className="p-3 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                      {generationError}
+                    </div>
+                  )}
+
+                  {!isAuthenticated && (
+                    <div className="p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm">
+                      Please log in to generate audio
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Star className="w-4 h-4 mr-2" />
+                        ElevenLabs
+                      </Button>
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {audioDuration}s
+                      </Button>
+                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                        <Music className="w-4 h-4 mr-2" />
+                        MP3
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base"
+                    onClick={handleAudioGeneration}
+                    disabled={isGenerating || !audioPrompt.trim()}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Generating Audio...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M12 3L4 9L12 15L20 9L12 3Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M4 15L12 21L20 15"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        Generate Audio
+                      </>
+                    )}
                   </Button>
                 </Card>
               </TabsContent>
