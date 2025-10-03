@@ -17,13 +17,13 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # Import all your SQLModel models here
-# Set up the Python path to include the app directory
+# Set up the Python path to include the parent directory
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 try:
-    from app.models.user import User
+    from models.user import User
 except ImportError:
     # Models might not exist yet or have different structure
     User = None

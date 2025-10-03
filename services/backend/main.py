@@ -5,14 +5,14 @@ from alembic.config import Config
 from alembic import command
 
 # Database setup
-from app.db.session import engine
+from db.session import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan context manager for startup and shutdown events."""
     # Run database migrations on startup
     try:
-        alembic_cfg = Config("alembic.ini")
+        alembic_cfg = Config("../alembic.ini")
         command.upgrade(alembic_cfg, "head")
         print("Database migrations completed successfully")
     except Exception as e:
@@ -24,6 +24,10 @@ async def lifespan(app: FastAPI):
     pass
 
 app = FastAPI(title="VideoStack API", version="1.0.0", lifespan=lifespan)
+
+# Include routers
+from routers.auth_router import auth_router
+app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 
 
 
