@@ -39,7 +39,9 @@ async def create_generation(
         # Generate content based on type
         if request.generation_type == "image":
             # Image generation parameters
-            model = "runware:101@1"
+            # model = "runware:101@1"
+            model = "google:4@1"
+            
             width = 1024
             height = 1024
             generated_content_url = await generate_image(request.prompt, model, width, height)

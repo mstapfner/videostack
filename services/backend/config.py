@@ -16,3 +16,6 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
 
 RUNWARE_API_KEY = os.getenv("RUNWARE_API_KEY", "")
+
+# Bytedance
+ARK_API_KEY = os.getenv("ARK_API_KEY", "")
