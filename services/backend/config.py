@@ -11,3 +11,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://videostack_user:videostac
 
 # Your frontend URL, for redirects
 CLIENT_URL = "http://localhost:3000"
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")

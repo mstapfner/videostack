@@ -3,6 +3,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: 'GeistSans';
+  src: url('/_next/static/media/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GeistMono';
+  src: url('/_next/static/media/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #333333;
@@ -37,9 +53,8 @@
   --sidebar-accent-foreground: #1e3a8a;
   --sidebar-border: #e5e7eb;
   --sidebar-ring: #3b82f6;
-  --font-sans: 'Inter', 'Inter Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --font-serif: 'Source Serif 4', 'Source Serif 4 Fallback';
+  --font-geist-sans: 'GeistSans', 'Inter', 'Inter Fallback';
+  --font-geist-mono: 'GeistMono', 'Geist Mono', 'Geist Mono Fallback';
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 2px;
@@ -90,8 +105,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'Inter Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -150,7 +165,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-family: 'GeistSans', 'Inter', 'Inter Fallback', system-ui, sans-serif;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
