@@ -73,8 +73,11 @@ async def get_current_user(
         user_data = await get_user_profile(user_id)
         user_profile = UserProfile(**user_data)
         
-        # Ensure user exists in database (create/update)
-        get_or_create_user(session, user_profile)
+        # Ensure user exists in database (create/update) and get the database user
+        db_user = get_or_create_user(session, user_profile)
+        
+        # Add the database UUID to the user profile
+        user_profile.database_id = db_user.id
         
         return user_profile
         

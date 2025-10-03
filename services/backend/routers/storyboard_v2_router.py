@@ -123,7 +123,7 @@ async def create_storyboard(
     try:
         # Create storyboard
         new_storyboard = Storyboard(
-            user_id=current_user.id,
+            user_id=current_user.database_id,
             initial_line=request.initial_line,
             title=request.title,
             status=request.status or "draft",
@@ -191,7 +191,7 @@ async def get_user_storyboards(
         List of storyboard summaries
     """
     try:
-        statement = select(Storyboard).where(Storyboard.user_id == current_user.id)
+        statement = select(Storyboard).where(Storyboard.user_id == current_user.database_id)
         storyboards = session.exec(statement).all()
 
         total = len(storyboards)
@@ -240,7 +240,7 @@ async def get_storyboard(
     try:
         statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(statement).first()
 
@@ -283,7 +283,7 @@ async def update_storyboard(
     try:
         statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(statement).first()
 
@@ -334,7 +334,7 @@ async def delete_storyboard(
     try:
         statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(statement).first()
 
@@ -382,7 +382,7 @@ async def add_scene_to_storyboard(
         # Verify storyboard exists and belongs to user
         statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(statement).first()
 
@@ -439,7 +439,7 @@ async def get_scene(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -498,7 +498,7 @@ async def update_scene(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -565,7 +565,7 @@ async def delete_scene(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -628,7 +628,7 @@ async def add_shot_to_scene(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -713,7 +713,7 @@ async def get_shot(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -798,7 +798,7 @@ async def update_shot(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 
@@ -897,7 +897,7 @@ async def delete_shot(
         # Verify storyboard belongs to user
         storyboard_statement = select(Storyboard).where(
             Storyboard.id == storyboard_id,
-            Storyboard.user_id == current_user.id
+            Storyboard.user_id == current_user.database_id
         )
         storyboard = session.exec(storyboard_statement).first()
 

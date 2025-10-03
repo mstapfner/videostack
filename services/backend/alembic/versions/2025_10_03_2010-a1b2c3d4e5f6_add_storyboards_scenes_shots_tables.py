@@ -8,7 +8,6 @@ Create Date: 2025-10-03 20:10:00.000000+00:00
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 import sqlmodel
 
 
@@ -24,15 +23,15 @@ def upgrade() -> None:
     # Create storyboards table
     op.create_table(
         'storyboards',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('creation_date', sa.DateTime(), nullable=False),
-        sa.Column('updated_date', sa.DateTime(), nullable=False),
-        sa.Column('user_id', sa.String(), nullable=True),
-        sa.Column('initial_line', sa.String(), nullable=False),
-        sa.Column('title', sa.String(), nullable=True),
-        sa.Column('status', sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_storyboards_user_id_users')),
-        sa.PrimaryKeyConstraint('id', name=op.f('storyboards_pkey'))
+        sqlmodel.Column('id', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('creation_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('updated_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('user_id', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('initial_line', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('title', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('status', sqlmodel.String(), nullable=False),
+        sqlmodel.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_storyboards_user_id_users')),
+        sqlmodel.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_storyboards_initial_line'), 'storyboards', ['initial_line'], unique=False)
     op.create_index(op.f('ix_storyboards_status'), 'storyboards', ['status'], unique=False)
@@ -42,15 +41,15 @@ def upgrade() -> None:
     # Create storyboard_scenes table
     op.create_table(
         'storyboard_scenes',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('creation_date', sa.DateTime(), nullable=False),
-        sa.Column('updated_date', sa.DateTime(), nullable=False),
-        sa.Column('storyboard_id', sa.String(), nullable=False),
-        sa.Column('scene_number', sa.Integer(), nullable=False),
-        sa.Column('description', sa.String(), nullable=True),
-        sa.Column('duration', sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(['storyboard_id'], ['storyboards.id'], name=op.f('fk_storyboard_scenes_storyboard_id_storyboards')),
-        sa.PrimaryKeyConstraint('id', name=op.f('storyboard_scenes_pkey'))
+        sqlmodel.Column('id', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('creation_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('updated_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('storyboard_id', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('scene_number', sqlmodel.Integer(), nullable=False),
+        sqlmodel.Column('description', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('duration', sqlmodel.Float(), nullable=True),
+        sqlmodel.ForeignKeyConstraint(['storyboard_id'], ['storyboards.id'], name=op.f('fk_storyboard_scenes_storyboard_id_storyboards')),
+        sqlmodel.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_storyboard_scenes_scene_number'), 'storyboard_scenes', ['scene_number'], unique=False)
     op.create_index(op.f('ix_storyboard_scenes_storyboard_id'), 'storyboard_scenes', ['storyboard_id'], unique=False)
@@ -58,18 +57,18 @@ def upgrade() -> None:
     # Create shots table
     op.create_table(
         'shots',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('creation_date', sa.DateTime(), nullable=False),
-        sa.Column('updated_date', sa.DateTime(), nullable=False),
-        sa.Column('scene_id', sa.String(), nullable=False),
-        sa.Column('shot_number', sa.Integer(), nullable=False),
-        sa.Column('user_prompt', sa.String(), nullable=False),
-        sa.Column('start_image_url', sa.String(), nullable=True),
-        sa.Column('end_image_url', sa.String(), nullable=True),
-        sa.Column('video_url', sa.String(), nullable=True),
-        sa.Column('status', sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(['scene_id'], ['storyboard_scenes.id'], name=op.f('fk_shots_scene_id_storyboard_scenes')),
-        sa.PrimaryKeyConstraint('id', name=op.f('shots_pkey'))
+        sqlmodel.Column('id', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('creation_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('updated_date', sqlmodel.DateTime(), nullable=False),
+        sqlmodel.Column('scene_id', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('shot_number', sqlmodel.Integer(), nullable=False),
+        sqlmodel.Column('user_prompt', sqlmodel.String(), nullable=False),
+        sqlmodel.Column('start_image_url', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('end_image_url', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('video_url', sqlmodel.String(), nullable=True),
+        sqlmodel.Column('status', sqlmodel.String(), nullable=False),
+        sqlmodel.ForeignKeyConstraint(['scene_id'], ['storyboard_scenes.id'], name=op.f('fk_shots_scene_id_storyboard_scenes')),
+        sqlmodel.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_shots_scene_id'), 'shots', ['scene_id'], unique=False)
     op.create_index(op.f('ix_shots_shot_number'), 'shots', ['shot_number'], unique=False)
@@ -97,4 +96,3 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_storyboards_status'), table_name='storyboards')
     op.drop_index(op.f('ix_storyboards_initial_line'), table_name='storyboards')
     op.drop_table('storyboards')
-

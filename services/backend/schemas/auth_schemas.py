@@ -6,7 +6,8 @@ from datetime import datetime
 
 class UserProfile(BaseModel):
     """User profile model."""
-    id: str
+    id: str  # WorkOS user ID
+    database_id: Optional[str] = None  # Database UUID
     email: EmailStr
     first_name: Optional[str] = None
     last_name: Optional[str] = None

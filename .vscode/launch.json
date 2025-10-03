@@ -17,13 +17,16 @@
                 "--port",
                 "8000",
                 "--log-level",
-                "debug"
+                "debug",
+                "--access-log",
+                "--use-colors"
             ],
             "jinja": true,
             "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/services/backend",
-                "PYTHONUNBUFFERED": "1"
+                "PYTHONUNBUFFERED": "1",
+                "PYTHONDONTWRITEBYTECODE": "1"
             },
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/services/backend"

@@ -1,7 +1,7 @@
 """Generation router for image and video generation."""
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session, select, desc
 from models.generation import Generation
 from schemas.auth_schemas import UserProfile
 from schemas.generation_schemas import (
@@ -34,30 +34,68 @@ async def create_generation(
         Created generation information
     """
     try:
-        # Create new generation
-        new_generation = Generation(
-            user_id=current_user.id,
-            prompt=request.prompt,
-            first_frame=request.first_frame,
-            last_frame=request.last_frame,
-            generation_type=request.generation_type,
-            status="pending",
-        )
+        # Generate content based on type
+        if request.generation_type == "image":
+            # Image generation parameters
+            model = "runware:101@1"
+            width = 1024
+            height = 1024
+            generated_content_url = await generate_image(request.prompt, model, width, height)
+            
+            # Create new generation with the generated content URL
+            new_generation = Generation(
+                user_id=current_user.database_id,
+                prompt=request.prompt,
+                first_frame=request.first_frame,
+                last_frame=request.last_frame,
+                generation_type=request.generation_type,
+                status="completed",
+                generated_content_url=generated_content_url,
+            )
+            
+        elif request.generation_type == "video":
+            # Video generation parameters
+            model = "bytedance:2@1"
+            width = 864
+            height = 480
+            duration = 5
+            fps = 24
+            output_format = "mp4"
+            output_quality = 85
+            provider_settings = {"bytedance": {"cameraFixed": False}}
+            
+            generated_content_url = await generate_video(
+                prompt=request.prompt,
+                model=model,
+                width=width,
+                height=height,
+                duration=duration,
+                fps=fps,
+                output_format=output_format,
+                output_quality=output_quality,
+                provider_settings=provider_settings,
+            )
+            
+            # Create new generation with the generated content URL
+            new_generation = Generation(
+                user_id=current_user.database_id,
+                prompt=request.prompt,
+                first_frame=request.first_frame,
+                last_frame=request.last_frame,
+                generation_type=request.generation_type,
+                status="completed",
+                generated_content_url=generated_content_url,
+            )
+            
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid generation type: {request.generation_type}",
+            )
 
         session.add(new_generation)
         session.commit()
         session.refresh(new_generation)
-
-        # TODO: pick the actual model to use with the correct parameters:
-        model = "runware:101@1"
-        width = 1024
-        height = 1024
-
-        if new_generation.generation_type == "image":
-            generated_content_url = await generate_image(new_generation.prompt, model, width, height)
-        elif new_generation.generation_type == "video":
-            generated_content_url = await generate_video(new_generation.prompt, model, width, height)
-
 
         return GenerationResponse(
             id=str(new_generation.id),
@@ -67,12 +105,14 @@ async def create_generation(
             last_frame=new_generation.last_frame,
             generation_type=new_generation.generation_type,
             status=new_generation.status,
-            generated_content_url=generated_content_url,
+            generated_content_url=new_generation.generated_content_url,
             error_message=new_generation.error_message,
             creation_date=new_generation.creation_date.isoformat() if new_generation.creation_date else "",
             updated_date=new_generation.updated_date.isoformat() if new_generation.updated_date else "",
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
         raise HTTPException(
@@ -87,21 +127,33 @@ async def get_user_generations(
     session: Session = Depends(get_session),
     skip: int = 0,
     limit: int = 50,
+    generation_type: Optional[str] = None,
 ):
     """
     Get all generations for the authenticated user.
 
     Args:
         current_user: Authenticated user from dependency
+        session: Database session
         skip: Number of records to skip for pagination
         limit: Maximum number of records to return
+        generation_type: Optional filter by generation type (image, video, audio)
 
     Returns:
         List of user generations with total count
     """
     try:
-        # Query generations for the current user
-        statement = select(Generation).where(Generation.user_id == current_user.id)
+        # Build query with filters
+        statement = select(Generation).where(Generation.user_id == current_user.database_id)
+        
+        # Apply type filter if provided
+        if generation_type:
+            statement = statement.where(Generation.generation_type == generation_type)
+        
+        # Order by creation date descending (newest first)
+        statement = statement.order_by(desc(Generation.creation_date))
+        
+        # Execute query
         generations = session.exec(statement).all()
 
         # Apply pagination
@@ -138,6 +190,90 @@ async def get_user_generations(
         )
 
 
+@r.get("/images", response_model=GenerationListResponse)
+async def get_user_images(
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 50,
+):
+    """
+    Get all image generations for the authenticated user.
+
+    Args:
+        current_user: Authenticated user from dependency
+        session: Database session
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+
+    Returns:
+        List of user image generations with total count
+    """
+    return await get_user_generations(
+        current_user=current_user,
+        session=session,
+        skip=skip,
+        limit=limit,
+        generation_type="image"
+    )
+
+
+@r.get("/videos", response_model=GenerationListResponse)
+async def get_user_videos(
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 50,
+):
+    """
+    Get all video generations for the authenticated user.
+
+    Args:
+        current_user: Authenticated user from dependency
+        session: Database session
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+
+    Returns:
+        List of user video generations with total count
+    """
+    return await get_user_generations(
+        current_user=current_user,
+        session=session,
+        skip=skip,
+        limit=limit,
+        generation_type="video"
+    )
+
+
+@r.get("/audios", response_model=GenerationListResponse)
+async def get_user_audios(
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 50,
+):
+    """
+    Get all audio generations for the authenticated user.
+
+    Args:
+        current_user: Authenticated user from dependency
+        session: Database session
+        skip: Number of records to skip for pagination
+        limit: Maximum number of records to return
+
+    Returns:
+        List of user audio generations with total count
+    """
+    return await get_user_generations(
+        current_user=current_user,
+        session=session,
+        skip=skip,
+        limit=limit,
+        generation_type="audio"
+    )
+
+
 @r.get("/{generation_id}", response_model=GenerationResponse)
 async def get_generation(
     generation_id: str,
@@ -158,7 +294,7 @@ async def get_generation(
         # Query generation by ID and user
         statement = select(Generation).where(
             Generation.id == generation_id,
-            Generation.user_id == current_user.id
+            Generation.user_id == current_user.database_id
         )
         generation = session.exec(statement).first()
 
@@ -211,7 +347,7 @@ async def get_generation_status(
         # Query generation by ID and user
         statement = select(Generation).where(
             Generation.id == generation_id,
-            Generation.user_id == current_user.id
+            Generation.user_id == current_user.database_id
         )
         generation = session.exec(statement).first()
 

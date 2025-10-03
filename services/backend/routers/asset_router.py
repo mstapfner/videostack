@@ -23,7 +23,7 @@ async def get_user_assets(
     """
     try:
         # Query assets for the current user
-        statement = select(Asset).where(Asset.user_id == current_user.id)
+        statement = select(Asset).where(Asset.user_id == current_user.database_id)
         assets = session.exec(statement).all()
 
         # Convert to dictionaries for response
@@ -76,7 +76,7 @@ async def upload_asset(
     try:
         # Create new asset
         new_asset = Asset(
-            user_id=current_user.id,
+            user_id=current_user.database_id,
             link=link,
             type=asset_type,
             status="active",
