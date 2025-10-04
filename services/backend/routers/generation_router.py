@@ -116,6 +116,9 @@ async def create_generation(
                 # Handle ByteDance seedance models using ByteDance API directly
                 duration = request.duration if request.duration else 5
 
+                # Get aspect ratio from request or use default
+                aspect_ratio = request.aspect_ratio if request.aspect_ratio else "16:9"
+
                 # Map resolution parameters to ByteDance format
                 resolution = "720p"  # Default resolution
 
@@ -123,30 +126,19 @@ async def create_generation(
                     # Map common width/height combinations to ByteDance resolution
                     width_height_map = {
                         (864, 480): "720p",
-                        (1024, 576): "1080p",
+                        (1024, 576): "720p",
                         (1280, 720): "720p",
                         (1920, 1080): "1080p",
                     }
                     resolution = width_height_map.get((request.width, request.height), "720p")
-                elif request.aspect_ratio:
-                    # Map aspect ratio to resolution (all map to 720p for now as per API)
-                    aspect_ratio_map = {
-                        "16:9": "720p",
-                        "9:16": "720p",
-                        "1:1": "720p",
-                        "3:4": "720p",
-                        "4:3": "720p",
-                        "21:9": "720p",
-                        "adaptive": "720p"
-                    }
-                    resolution = aspect_ratio_map.get(request.aspect_ratio, "720p")
 
                 # Camera fixed parameter (not in schema, so use default)
                 camera_fixed = False
 
                 print(f"🎥 ROUTER: Using ByteDance API for seedance model: {model}")
                 print(f"🎥 ROUTER: Prompt: {request.prompt[:50]}...")
-                print(f"🎥 ROUTER: Duration: {duration}s, Resolution: {resolution}")
+                print(f"🎥 ROUTER: Duration: {duration}s, Resolution: {resolution}, Aspect Ratio: {aspect_ratio}")
+                print(f"🎥 ROUTER: Camera Fixed: {camera_fixed}")
                 print(f"🎥 ROUTER: First frame: {request.first_frame}")
                 print(f"🎥 ROUTER: Last frame: {request.last_frame}")
 
@@ -156,6 +148,7 @@ async def create_generation(
                     first_image=request.first_frame,
                     last_image=request.last_frame,
                     model=model,
+                    aspect_ratio=aspect_ratio,
                     resolution=resolution,
                     duration=duration,
                     camera_fixed=camera_fixed,

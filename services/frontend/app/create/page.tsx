@@ -306,6 +306,16 @@ export default function CreatePage() {
         lastFrame = image2Url
       }
 
+      // Log all parameters being sent to backend
+      console.log('🎬 VIDEO GENERATION REQUEST:', {
+        prompt: videoPrompt.substring(0, 50) + '...',
+        model: selectedVideoModel,
+        aspectRatio: selectedAspectRatio,
+        duration: duration,
+        firstFrame: firstFrame ? 'Provided' : 'None',
+        lastFrame: lastFrame ? 'Provided' : 'None'
+      })
+
       const response = await createVideoGeneration(
         videoPrompt,
         selectedVideoModel,

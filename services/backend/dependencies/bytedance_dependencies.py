@@ -15,6 +15,7 @@ async def generate_video(
     first_image: Optional[str] = None,
     last_image: Optional[str] = None,
     model: str = "seedance-1-0-lite-i2v-250428",
+    aspect_ratio: str = "16:9",
     resolution: str = "720p",
     duration: int = 5,
     camera_fixed: bool = False,
@@ -27,6 +28,7 @@ async def generate_video(
         first_image: Optional URL to the first image
         last_image: Optional URL to the last image (if supported by model)
         model: Model to use (default: seedance-1-0-lite-i2v-250428)
+        aspect_ratio: Video aspect ratio (default: 16:9)
         resolution: Video resolution (default: 720p)
         duration: Video duration in seconds (default: 5)
         camera_fixed: Whether camera should be fixed (default: False)
@@ -42,11 +44,13 @@ async def generate_video(
         # Add text content if provided
         if text:
             # Append video generation parameters to text
-            text_with_params = f"{text} --resolution {resolution} --duration {duration} --camera{'fixed' if camera_fixed else 'fixed false'}"
+            # Format: --ratio 16:9 --resolution 720p --duration 5 --camerafixed false
+            text_with_params = f"{text} --ratio {aspect_ratio} --resolution {resolution} --duration {duration} --camerafixed {str(camera_fixed).lower()}"
             content.append({
                 "type": "text",
                 "text": text_with_params
             })
+            print(f"🎬 BYTEDANCE: Text with params: {text_with_params}")
         
         # Add first image if provided
         # Strip all spaces from the image url
