@@ -1,5 +1,5 @@
-# Use Node.js 20 Alpine as base image for better compatibility
-FROM node:20-alpine AS base
+# Use Node.js 18 Alpine as base image for smaller size
+FROM node:18-alpine AS base
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -13,9 +13,6 @@ COPY package.json pnpm-lock.yaml ./
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy public directory first
-COPY public ./public
-
 # Copy source code
 COPY . .
 
@@ -23,7 +20,7 @@ COPY . .
 RUN pnpm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:18-alpine AS runner
 
 # Install pnpm in production stage too
 RUN npm install -g pnpm
