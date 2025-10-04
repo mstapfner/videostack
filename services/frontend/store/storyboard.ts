@@ -172,8 +172,11 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
   },
 
   loadStoryboard: async (storyboardId) => {
+    const { isPolling } = get();
     try {
-      set({ isLoading: true });
+      if (!isPolling) {
+        set({ isLoading: true });
+      }
       const storyboard = await api.getStoryboard(storyboardId);
       
       // Convert backend format to frontend format

@@ -38,7 +38,7 @@ MASTER_PROMPT = (
     "It's important to keep the storyboardscenes to each other and the user prompt, so if one scene is based on the previous one, make sure to describe in the scene all relevant elements. "
     "If two shots are closely related to each other or referencing each other, you must group them into a single scene."
     "Scene counting starts at 0."
-    "Include at least 2 shots for every scene"
+    "Include at least 2 shots for every scene, and generate maxium 3 scenes"
     "Come up with a suitable duration for each scene in seconds, the maxium is 10 seconds and the minimum is 2 seconds."
     "User prompt: \"{user_prompt}\""
 )
