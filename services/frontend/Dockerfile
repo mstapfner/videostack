@@ -1,5 +1,5 @@
-# Use Node.js 18 Alpine as base image for smaller size
-FROM node:18-alpine AS base
+# Use Node.js 20 Alpine as base image for better compatibility
+FROM node:20-alpine AS base
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -19,8 +19,11 @@ COPY public ./public
 # Copy source code
 COPY . .
 
+# Build the application
+RUN pnpm run build
+
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 # Install pnpm in production stage too
 RUN npm install -g pnpm
