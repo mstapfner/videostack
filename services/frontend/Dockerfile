@@ -13,11 +13,11 @@ COPY package.json pnpm-lock.yaml ./
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
+# Copy public directory first
+COPY public ./public
+
 # Copy source code
 COPY . .
-
-# Build the application
-RUN pnpm run build
 
 # Production stage
 FROM node:18-alpine AS runner
