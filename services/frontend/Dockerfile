@@ -32,9 +32,12 @@ RUN adduser --system --uid 1001 nextjs
 # Set working directory
 WORKDIR /app
 
-# Copy built application from base stage
+# Copy necessary files from base stage
+COPY --from=base /app/package.json ./package.json
+COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/public ./public
 COPY --from=base /app/.next ./.next
+COPY --from=base /app/next.config.mjs ./next.config.mjs
 
 # Set correct permissions for prerender cache
 RUN chown nextjs:nodejs /app
@@ -50,4 +53,4 @@ ENV PORT 3000
 ENV NODE_ENV production
 
 # Start the application
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]
