@@ -13,6 +13,42 @@ This document explains how to deploy the VideoStack backend service to Northflan
    - `OPENAI_API_KEY` - OpenAI API key
    - `GROQ_API_KEY` - Groq API key
    - `RUNWARE_API_KEY` - Runware API key
+   - `ARK_API_KEY` - ByteDance ARK API key for video generation
+   - `AWS_ACCESS_KEY_ID` - AWS access key ID for S3 uploads
+   - `AWS_SECRET_ACCESS_KEY` - AWS secret access key for S3 uploads
+   - `S3_BUCKET_NAME` - S3 bucket name for image uploads
+   - `AWS_REGION` - AWS region for S3 (default: us-east-1)
+
+## S3 Bucket Configuration
+
+For image uploads to work properly, your S3 bucket must have:
+
+1. **ACLs Disabled**: The bucket should have ACLs disabled (Block Public Access settings should allow public bucket policies)
+
+2. **Bucket Policy**: Add the following bucket policy to allow public read access to uploaded images:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your-bucket-name/*"
+            ]
+        }
+    ]
+}
+```
+
+Replace `your-bucket-name` with your actual S3 bucket name.
+
+3. **CORS Configuration** (optional): If you need to access uploaded images from a web browser, add CORS configuration to your bucket.
 
 ## Deployment Configuration
 

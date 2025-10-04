@@ -1,7 +1,13 @@
-"""Generation router for image and video generation."""
+"""Generation router for image and video generation.
+
+This router now supports:
+1. Image upload to S3 via POST /api/generations/upload-image
+2. Using uploaded images as first_frame/last_frame in video generation
+3. Automatic integration with ByteDance video generation API
+"""
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
 from sqlmodel import Session, select, desc
 from models.generation import Generation
 from schemas.auth_schemas import UserProfile
@@ -15,9 +21,50 @@ from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
 from dependencies.runware_dependencies import generate_image, generate_audio, generate_video
 from dependencies.bytedance_dependencies import generate_video as generate_bytedance_video
+from dependencies.s3_dependencies import upload_file_to_s3
 
 logger = logging.getLogger(__name__)
 generation_router = r = APIRouter()
+
+
+@r.post("/upload-image", response_model=dict)
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: UserProfile = Depends(get_current_user),
+):
+    """
+    Upload an image file to S3 and return the public URL.
+
+    Args:
+        file: The image file to upload
+        current_user: Authenticated user from dependency
+
+    Returns:
+        Dictionary containing the uploaded image URL
+    """
+    try:
+        print(f"📤 UPLOAD: Starting image upload for user {current_user.database_id}")
+        print(f"📤 UPLOAD: File name: {file.filename}, Content type: {file.content_type}")
+
+        # Upload file to S3
+        image_url = await upload_file_to_s3(file, folder="user-uploads")
+
+        print(f"✅ UPLOAD: Successfully uploaded image to: {image_url}")
+
+        return {
+            "image_url": image_url,
+            "filename": file.filename,
+            "message": "Image uploaded successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ UPLOAD: Error uploading image: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image: {str(e)}",
+        )
 
 
 @r.post("/", response_model=GenerationResponse)

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2, Upload, X, Monitor, Download } from "lucide-react"
 import { useState, useRef } from "react"
 import Image from "next/image"
-import { createImageGeneration, createVideoGeneration, createAudioGeneration } from "@/lib/api-client"
+import { createImageGeneration, createVideoGeneration, createAudioGeneration, uploadImage } from "@/lib/api-client"
 import { AuthGuard } from "@/components/AuthGuard"
 
 const angleOptions = [
@@ -85,8 +85,12 @@ export default function CreatePage() {
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [selectedImage1, setSelectedImage1] = useState<File | null>(null)
   const [selectedImage2, setSelectedImage2] = useState<File | null>(null)
+  const [image1Url, setImage1Url] = useState<string | null>(null)
+  const [image2Url, setImage2Url] = useState<string | null>(null)
   const [image1Preview, setImage1Preview] = useState<string | null>(null)
   const [image2Preview, setImage2Preview] = useState<string | null>(null)
+  const [isUploading1, setIsUploading1] = useState(false)
+  const [isUploading2, setIsUploading2] = useState(false)
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-lite-text")
   const [selectedAspectRatio, setSelectedAspectRatio] = useState("16:9")
   const [selectedDuration, setSelectedDuration] = useState("5s")
@@ -113,8 +117,12 @@ export default function CreatePage() {
     // Reset selected images when model changes
     setSelectedImage1(null)
     setSelectedImage2(null)
+    setImage1Url(null)
+    setImage2Url(null)
     setImage1Preview(null)
     setImage2Preview(null)
+    setIsUploading1(false)
+    setIsUploading2(false)
   }
 
   const handleImageModelChange = (modelId: string) => {
@@ -133,25 +141,61 @@ export default function CreatePage() {
     }
   }
 
-  const handleFileSelect = (fileNumber: 1 | 2, file: File | null) => {
+  const handleFileSelect = async (fileNumber: 1 | 2, file: File | null) => {
     if (fileNumber === 1) {
       setSelectedImage1(file)
+      setImage1Url(null) // Reset S3 URL when new file is selected
+      setIsUploading1(true)
+
       if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => setImage1Preview(e.target?.result as string)
-        reader.readAsDataURL(file)
+        try {
+          // Upload file to S3
+          const uploadResult = await uploadImage(file)
+          setImage1Url(uploadResult.image_url)
+          console.log('Image 1 uploaded successfully:', uploadResult.image_url)
+
+          // Create preview for UI display
+          const reader = new FileReader()
+          reader.onload = (e) => setImage1Preview(e.target?.result as string)
+          reader.readAsDataURL(file)
+        } catch (error) {
+          console.error('Error uploading image 1:', error)
+          setGenerationError(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          setSelectedImage1(null)
+          setImage1Preview(null)
+        }
       } else {
         setImage1Preview(null)
       }
+
+      setIsUploading1(false)
     } else {
       setSelectedImage2(file)
+      setImage2Url(null) // Reset S3 URL when new file is selected
+      setIsUploading2(true)
+
       if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => setImage2Preview(e.target?.result as string)
-        reader.readAsDataURL(file)
+        try {
+          // Upload file to S3
+          const uploadResult = await uploadImage(file)
+          setImage2Url(uploadResult.image_url)
+          console.log('Image 2 uploaded successfully:', uploadResult.image_url)
+
+          // Create preview for UI display
+          const reader = new FileReader()
+          reader.onload = (e) => setImage2Preview(e.target?.result as string)
+          reader.readAsDataURL(file)
+        } catch (error) {
+          console.error('Error uploading image 2:', error)
+          setGenerationError(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          setSelectedImage2(null)
+          setImage2Preview(null)
+        }
       } else {
         setImage2Preview(null)
       }
+
+      setIsUploading2(false)
     }
   }
 
@@ -166,13 +210,17 @@ export default function CreatePage() {
   const handleRemoveImage = (fileNumber: 1 | 2) => {
     if (fileNumber === 1) {
       setSelectedImage1(null)
+      setImage1Url(null)
       setImage1Preview(null)
+      setIsUploading1(false)
       if (fileInput1Ref.current) {
         fileInput1Ref.current.value = ''
       }
     } else {
       setSelectedImage2(null)
+      setImage2Url(null)
       setImage2Preview(null)
+      setIsUploading2(false)
       if (fileInput2Ref.current) {
         fileInput2Ref.current.value = ''
       }
@@ -251,11 +299,11 @@ export default function CreatePage() {
       let firstFrame: string | undefined
       let lastFrame: string | undefined
 
-      if (getCurrentVideoModel().uploadButtons >= 1 && image1Preview) {
-        firstFrame = image1Preview
+      if (getCurrentVideoModel().uploadButtons >= 1 && image1Url) {
+        firstFrame = image1Url
       }
-      if (getCurrentVideoModel().uploadButtons >= 2 && image2Preview) {
-        lastFrame = image2Preview
+      if (getCurrentVideoModel().uploadButtons >= 2 && image2Url) {
+        lastFrame = image2Url
       }
 
       const response = await createVideoGeneration(
@@ -528,8 +576,11 @@ export default function CreatePage() {
                           variant="outline"
                           className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800 relative"
                           onClick={() => handleUploadClick(1)}
+                          disabled={isUploading1}
                         >
-                          {image1Preview ? (
+                          {isUploading1 ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : image1Preview ? (
                             <Image
                               src={image1Preview}
                               alt="Selected image 1"
@@ -549,8 +600,11 @@ export default function CreatePage() {
                           variant="outline"
                           className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800 relative"
                           onClick={() => handleUploadClick(2)}
+                          disabled={isUploading2}
                         >
-                          {image2Preview ? (
+                          {isUploading2 ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : image2Preview ? (
                             <Image
                               src={image2Preview}
                               alt="Selected image 2"
