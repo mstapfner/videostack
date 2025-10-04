@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2 } from "lucide-react"
-import { useState } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2, Upload, X, Monitor } from "lucide-react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import { createImageGeneration, createVideoGeneration, createAudioGeneration } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
@@ -22,6 +23,36 @@ const angleOptions = [
   { id: "over-shoulder", label: "Over the shoulder", image: "/person-with-camera-over-shoulder.jpg" },
   { id: "overhead", label: "Overhead", image: "/person-from-above-overhead.jpg" },
   { id: "birds-eye", label: "Bird's eye view", image: "/person-with-camera-birds-eye-view.jpg" },
+]
+
+const videoModelOptions = [
+  { id: "seedance-lite-text", label: "Seedance-Lite Text-to-video", uploadButtons: 0 },
+  { id: "seedance-pro-text", label: "Seedance-Pro Text-to-video", uploadButtons: 0 },
+  { id: "seedance-lite-image", label: "Seedance-Lite Image-to-video", uploadButtons: 1 },
+  { id: "seedance-lite-frames", label: "Seedance-Lite First & Last frame", uploadButtons: 2 },
+]
+
+const aspectRatioOptions = [
+  { id: "16:9", label: "16:9" },
+  { id: "4:3", label: "4:3" },
+  { id: "1:1", label: "1:1" },
+  { id: "3:4", label: "3:4" },
+  { id: "9:16", label: "9:16" },
+  { id: "21:9", label: "21:9" },
+  { id: "adaptive", label: "Adaptive" },
+]
+
+const durationOptions = [
+  { id: "3s", label: "3s" },
+  { id: "4s", label: "4s" },
+  { id: "5s", label: "5s" },
+  { id: "6s", label: "6s" },
+  { id: "7s", label: "7s" },
+  { id: "8s", label: "8s" },
+  { id: "9s", label: "9s" },
+  { id: "10s", label: "10s" },
+  { id: "11s", label: "11s" },
+  { id: "12s", label: "12s" },
 ]
 
 export default function CreatePage() {
@@ -36,8 +67,77 @@ export default function CreatePage() {
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null)
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
+  const [selectedImage1, setSelectedImage1] = useState<File | null>(null)
+  const [selectedImage2, setSelectedImage2] = useState<File | null>(null)
+  const [image1Preview, setImage1Preview] = useState<string | null>(null)
+  const [image2Preview, setImage2Preview] = useState<string | null>(null)
+  const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-lite-text")
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState("16:9")
+  const [selectedDuration, setSelectedDuration] = useState("5s")
+
+  const fileInput1Ref = useRef<HTMLInputElement>(null)
+  const fileInput2Ref = useRef<HTMLInputElement>(null)
 
   const { isAuthenticated } = useAuth()
+
+  const getCurrentVideoModel = () => {
+    return videoModelOptions.find(model => model.id === selectedVideoModel) || videoModelOptions[0]
+  }
+
+  const handleVideoModelChange = (modelId: string) => {
+    setSelectedVideoModel(modelId)
+    // Reset selected images when model changes
+    setSelectedImage1(null)
+    setSelectedImage2(null)
+    setImage1Preview(null)
+    setImage2Preview(null)
+  }
+
+  const handleFileSelect = (fileNumber: 1 | 2, file: File | null) => {
+    if (fileNumber === 1) {
+      setSelectedImage1(file)
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => setImage1Preview(e.target?.result as string)
+        reader.readAsDataURL(file)
+      } else {
+        setImage1Preview(null)
+      }
+    } else {
+      setSelectedImage2(file)
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => setImage2Preview(e.target?.result as string)
+        reader.readAsDataURL(file)
+      } else {
+        setImage2Preview(null)
+      }
+    }
+  }
+
+  const handleUploadClick = (fileNumber: 1 | 2) => {
+    if (fileNumber === 1) {
+      fileInput1Ref.current?.click()
+    } else {
+      fileInput2Ref.current?.click()
+    }
+  }
+
+  const handleRemoveImage = (fileNumber: 1 | 2) => {
+    if (fileNumber === 1) {
+      setSelectedImage1(null)
+      setImage1Preview(null)
+      if (fileInput1Ref.current) {
+        fileInput1Ref.current.value = ''
+      }
+    } else {
+      setSelectedImage2(null)
+      setImage2Preview(null)
+      if (fileInput2Ref.current) {
+        fileInput2Ref.current.value = ''
+      }
+    }
+  }
 
   const handleImageGeneration = async () => {
     if (!prompt.trim()) {
@@ -241,6 +341,59 @@ export default function CreatePage() {
                     </div>
                   )}
 
+                  {/* Selected Images Preview */}
+                  {(image1Preview || image2Preview) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-center">Selected Images</h3>
+                      <div className="flex gap-4 justify-center">
+                        {image1Preview && (
+                          <div className="relative">
+                            <Image
+                              src={image1Preview}
+                              alt="Selected image 1"
+                              width={200}
+                              height={200}
+                              className="w-32 h-32 object-cover rounded-lg border border-neutral-700"
+                            />
+                            <span className="absolute -top-2 -left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                              {getCurrentVideoModel().uploadButtons === 2 ? "First Frame" : "Image"}
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full p-0"
+                              onClick={() => handleRemoveImage(1)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                        {image2Preview && (
+                          <div className="relative">
+                            <Image
+                              src={image2Preview}
+                              alt="Selected image 2"
+                              width={200}
+                              height={200}
+                              className="w-32 h-32 object-cover rounded-lg border border-neutral-700"
+                            />
+                            <span className="absolute -top-2 -left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                              Last Frame
+                            </span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full p-0"
+                              onClick={() => handleRemoveImage(2)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="relative">
                     <Textarea
                       placeholder="Describe what you want to create..."
@@ -271,42 +424,112 @@ export default function CreatePage() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <Undo2 className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                      </Button>
+                      {/* Hidden file inputs */}
+                      <input
+                        ref={fileInput1Ref}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null
+                          handleFileSelect(1, file)
+                        }}
+                      />
+                      <input
+                        ref={fileInput2Ref}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null
+                          handleFileSelect(2, file)
+                        }}
+                      />
+                      
+                      {/* Dynamic Upload buttons based on selected model */}
+                      {getCurrentVideoModel().uploadButtons >= 1 && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800 relative"
+                          onClick={() => handleUploadClick(1)}
+                        >
+                          {image1Preview ? (
+                            <Image
+                              src={image1Preview}
+                              alt="Selected image 1"
+                              width={20}
+                              height={20}
+                              className="w-5 h-5 object-cover rounded"
+                            />
+                          ) : (
+                            <Upload className="w-5 h-5" />
+                          )}
+                        </Button>
+                      )}
+                      
+                      {getCurrentVideoModel().uploadButtons >= 2 && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800 relative"
+                          onClick={() => handleUploadClick(2)}
+                        >
+                          {image2Preview ? (
+                            <Image
+                              src={image2Preview}
+                              alt="Selected image 2"
+                              width={20}
+                              height={20}
+                              className="w-5 h-5 object-cover rounded"
+                            />
+                          ) : (
+                            <Upload className="w-5 h-5" />
+                          )}
+                        </Button>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
-                        <Star className="w-4 h-4 mr-2" />
-                        Bytedance
-                      </Button>
-                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
-                        <Clock className="w-4 h-4 mr-2" />
-                        5 Sec
-                      </Button>
-                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
-                        <Music className="w-4 h-4 mr-2" />
-                        On
-                      </Button>
+                      <Select value={selectedVideoModel} onValueChange={handleVideoModelChange}>
+                        <SelectTrigger className="w-64 bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                          <Star className="w-4 h-4 mr-2" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-neutral-900 border-neutral-800">
+                          {videoModelOptions.map((model) => (
+                            <SelectItem key={model.id} value={model.id} className="text-white hover:bg-neutral-800">
+                              {model.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedAspectRatio} onValueChange={setSelectedAspectRatio}>
+                        <SelectTrigger className="w-28 bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                          <Monitor className="w-4 h-4 mr-1" />
+                          <SelectValue placeholder={selectedAspectRatio} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-neutral-900 border-neutral-800">
+                          {aspectRatioOptions.map((ratio) => (
+                            <SelectItem key={ratio.id} value={ratio.id} className="text-white hover:bg-neutral-800">
+                              {ratio.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedDuration} onValueChange={setSelectedDuration}>
+                        <SelectTrigger className="w-28 bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                          <Clock className="w-4 h-4 mr-1" />
+                          <SelectValue placeholder={selectedDuration} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-neutral-900 border-neutral-800">
+                          {durationOptions.map((duration) => (
+                            <SelectItem key={duration.id} value={duration.id} className="text-white hover:bg-neutral-800">
+                              {duration.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

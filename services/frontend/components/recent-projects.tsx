@@ -18,7 +18,7 @@ export function RecentProjects() {
     async function fetchStoryboards() {
       try {
         setIsLoading(true)
-        const data = await getUserStoryboards(0, 8) // Fetch latest 8 storyboards
+        const data = await getUserStoryboards(0, 4) // Fetch latest 4 storyboards
         setStoryboards(data.storyboards)
         setError(null)
       } catch (err) {
