@@ -22,9 +22,6 @@ RUN pnpm run build
 # Production stage
 FROM node:18-alpine AS runner
 
-# Install pnpm in production stage too
-RUN npm install -g pnpm
-
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -32,23 +29,21 @@ RUN adduser --system --uid 1001 nextjs
 # Set working directory
 WORKDIR /app
 
-# Copy necessary files from base stage
-COPY --from=base /app/public ./public
-COPY --from=base /app/.next/standalone ./
-COPY --from=base /app/.next/static ./.next/static
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Set correct permissions for prerender cache
-RUN chown nextjs:nodejs /app
+# Copy standalone output
+COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=base --chown=nextjs:nodejs /app/public ./public
 
 # Switch to non-root user
 USER nextjs
 
 # Expose port
 EXPOSE 3000
-
-# Set environment variables
-ENV PORT 3000
-ENV NODE_ENV production
 
 # Start the application
 CMD ["node", "server.js"]
