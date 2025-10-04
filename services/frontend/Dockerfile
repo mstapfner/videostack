@@ -33,11 +33,9 @@ RUN adduser --system --uid 1001 nextjs
 WORKDIR /app
 
 # Copy necessary files from base stage
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/public ./public
-COPY --from=base /app/.next ./.next
-COPY --from=base /app/next.config.mjs ./next.config.mjs
+COPY --from=base /app/.next/standalone ./
+COPY --from=base /app/.next/static ./.next/static
 
 # Set correct permissions for prerender cache
 RUN chown nextjs:nodejs /app
