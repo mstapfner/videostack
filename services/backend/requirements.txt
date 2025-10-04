@@ -17,3 +17,5 @@ workos==5.28.0
 groq==0.32.0
 runware==0.4.25
 httpx==0.28.1
+
+boto3==1.40.45

@@ -20,3 +20,8 @@ RUNWARE_API_KEY = os.getenv("RUNWARE_API_KEY", "")
 # Bytedance
 ARK_API_KEY = os.getenv("ARK_API_KEY", "")
 ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations")
+
+# AWS 
+ACCESS_KEY = os.getenv("AWS_ACCESS_KEY", "")
+SECRET_KEY = os.getenv("AWS_SECRET_KEY", "")
+BUCKET_NAME = os.getenv("AWS_BUCKET_NAME", "videostack-uploads")
