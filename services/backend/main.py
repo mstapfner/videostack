@@ -106,6 +106,11 @@ app.include_router(debug_router, prefix="/api/debug", tags=["debug"])
 async def root():
     return {"message": "Welcome to VideoStack API", "status": "running"}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for load balancer and monitoring."""
+    return {"status": "healthy", "timestamp": int(time.time())}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
