@@ -18,6 +18,8 @@ from schemas.storyboard_v2_schemas import (
     ShotResponse,
     ShotAddRequest,
     ShotUpdateRequest,
+    ReorderScenesRequest,
+    ReorderShotsRequest,
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
@@ -951,6 +953,115 @@ async def delete_shot(
             detail=f"Failed to delete shot: {str(e)}",
         )
 
+
+# ============= Reorder Endpoints =============
+
+@r.post("/{storyboard_id}/reorder-scenes", response_model=StoryboardResponse)
+async def reorder_scenes(
+    storyboard_id: str,
+    request: ReorderScenesRequest,
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    try:
+        statement = select(Storyboard).where(
+            Storyboard.id == storyboard_id,
+            Storyboard.user_id == current_user.database_id
+        )
+        storyboard = session.exec(statement).first()
+
+        if not storyboard:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Storyboard not found")
+
+        scenes = list(storyboard.scenes)
+        existing_ids = {str(scene.id) for scene in scenes}
+        provided_ids = list(request.ordered_scene_ids)
+
+        if not provided_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ordered_scene_ids cannot be empty")
+
+        if set(provided_ids) != existing_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="ordered_scene_ids must contain exactly all scene IDs for this storyboard",
+            )
+
+        id_to_scene = {str(scene.id): scene for scene in scenes}
+        for index, scene_id in enumerate(provided_ids, start=1):
+            scene = id_to_scene.get(scene_id)
+            if scene and scene.scene_number != index:
+                scene.scene_number = index
+                session.add(scene)
+
+        session.commit()
+        session.refresh(storyboard)
+
+        return _storyboard_to_response(storyboard)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to reorder scenes: {str(e)}")
+
+
+@r.post("/{storyboard_id}/scenes/{scene_id}/reorder-shots", response_model=StoryboardSceneResponse)
+async def reorder_shots(
+    storyboard_id: str,
+    scene_id: str,
+    request: ReorderShotsRequest,
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    try:
+        storyboard_statement = select(Storyboard).where(
+            Storyboard.id == storyboard_id,
+            Storyboard.user_id == current_user.database_id
+        )
+        storyboard = session.exec(storyboard_statement).first()
+
+        if not storyboard:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Storyboard not found")
+
+        scene_statement = select(StoryboardScene).where(
+            StoryboardScene.id == scene_id,
+            StoryboardScene.storyboard_id == storyboard_id
+        )
+        scene = session.exec(scene_statement).first()
+
+        if not scene:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
+
+        shots = list(scene.shots)
+        existing_ids = {str(shot.id) for shot in shots}
+        provided_ids = list(request.ordered_shot_ids)
+
+        if not provided_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ordered_shot_ids cannot be empty")
+
+        if set(provided_ids) != existing_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="ordered_shot_ids must contain exactly all shot IDs for this scene",
+            )
+
+        id_to_shot = {str(shot.id): shot for shot in shots}
+        for index, shot_id in enumerate(provided_ids, start=1):
+            shot = id_to_shot.get(shot_id)
+            if shot and shot.shot_number != index:
+                shot.shot_number = index
+                session.add(shot)
+
+        session.commit()
+        session.refresh(scene)
+
+        return _scene_to_response(scene)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to reorder shots: {str(e)}")
 
 # ============= Image Generation Endpoint =============
 

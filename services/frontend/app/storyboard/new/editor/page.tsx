@@ -186,7 +186,7 @@ export default function StoryboardEditor() {
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center gap-2">
               <div className="relative w-8 h-8">
-                <Image src="/blue-gradient-v-logo.jpg" alt="Video Stack AI" fill className="object-contain" />
+                <Image src="/videostack_small_logo.png" alt="Video Stack AI" fill className="object-contain" />
               </div>
             </Link>
             <div className="h-8 w-px bg-neutral-700" />

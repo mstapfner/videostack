@@ -46,7 +46,7 @@ export default function ConceptPage() {
         <div className="flex items-center gap-6 px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
             <div className="relative w-10 h-10">
-              <Image src="/blue-gradient-v-logo.jpg" alt="Video Stack AI" fill className="object-contain" />
+              <Image src="/videostack_small_logo.png" alt="Video Stack AI" fill className="object-contain" />
             </div>
           </Link>
           <div className="h-8 w-px bg-neutral-700" />

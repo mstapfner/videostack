@@ -313,7 +313,7 @@ export default function CreatePage() {
             Start New Project
           </Button>
           <Avatar className="w-10 h-10">
-            <AvatarImage src="/diverse-user-avatars.png" />
+            <AvatarImage src="/placeholder-user.jpg" />
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
         </header>

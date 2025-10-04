@@ -149,3 +149,15 @@ class ShotUpdateRequest(BaseModel):
     video_url: Optional[str] = Field(None, description="URL to generated video")
     status: Optional[str] = Field(None, pattern="^(pending|processing|completed|failed)$", description="Shot status")
 
+
+# ============= Reorder Schemas =============
+
+class ReorderScenesRequest(BaseModel):
+    """Request to reorder all scenes within a storyboard by specifying the desired order of scene IDs."""
+    ordered_scene_ids: List[str] = Field(..., description="List of scene IDs in the desired order (index + 1 becomes scene_number)")
+
+
+class ReorderShotsRequest(BaseModel):
+    """Request to reorder all shots within a scene by specifying the desired order of shot IDs."""
+    ordered_shot_ids: List[str] = Field(..., description="List of shot IDs in the desired order (index + 1 becomes shot_number)")
+

@@ -28,7 +28,7 @@ export function Sidebar() {
         <Link href="/app" className="flex items-center gap-2">
           <div className="w-8 h-8 relative flex-shrink-0">
             <Image
-              src="/blue-gradient-v-logo.jpg"
+              src="/videostack_small_logo.png"
               alt="Video Stack.AI Logo"
               width={32}
               height={32}

@@ -52,7 +52,7 @@ export default function AppPage() {
           </Link>
           <Link href="/profile">
             <Avatar className="w-10 h-10 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
-              <AvatarImage src={user?.profilePictureUrl || "/diverse-user-avatars.png"} />
+              <AvatarImage src={user?.profilePictureUrl || "/placeholder-user.jpg"} />
               <AvatarFallback>
                 {user?.firstName?.[0] || user?.email?.[0] || 'U'}
               </AvatarFallback>
