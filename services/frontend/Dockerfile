@@ -1,23 +1,20 @@
 # Build stage
 FROM node:18-alpine AS builder
 
-# Install pnpm
-RUN npm install -g pnpm
-
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files, including the new lock file
+COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies using npm's clean install command
+RUN npm ci
 
 # Copy source code
 COPY . .
 
 # Build the static export
-RUN pnpm run build
+RUN npm run build
 
 # Production stage - use nginx to serve static files
 FROM nginx:alpine
