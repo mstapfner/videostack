@@ -175,10 +175,10 @@ async def create_generation(
                         "duration": duration,
                     }
 
-                    # For now, store task info as URL (will be processed by polling system later)
-                    generated_content_url = bytedance_response.get('video_url', '-')
+                    # Get the video URL from the response
+                    generated_content_url = bytedance_response.get('video_url')
 
-                    print(f"🎥 ROUTER: Task stored for async processing: {generated_content_url}")
+                    print(f"🎥 ROUTER: Task completed with video URL: {generated_content_url}")
                 else:
                     generated_content_url = None
                     print(f"🎥 ROUTER: ByteDance API call failed or returned None")
@@ -206,8 +206,21 @@ async def create_generation(
                 )
 
             # Create new generation with the generated content URL
-            # Set generation status based on model type (ByteDance models are async)
-            generation_status = "processing" if is_seedance_model else "completed"
+            # Set generation status based on model type and success
+            if is_seedance_model:
+                # For ByteDance models, check if generation was successful
+                if generated_content_url and generated_content_url != '-':
+                    generation_status = "completed"
+                    error_message = None
+                else:
+                    generation_status = "failed"
+                    if not generated_content_url:
+                        error_message = "ByteDance video generation failed - no video URL returned"
+                    else:
+                        error_message = None
+            else:
+                generation_status = "completed"
+                error_message = None
 
             new_generation = Generation(
                 user_id=current_user.database_id,
@@ -217,6 +230,7 @@ async def create_generation(
                 generation_type=request.generation_type,
                 status=generation_status,
                 generated_content_url=generated_content_url,
+                error_message=error_message if error_message else None,
             )
             
         elif request.generation_type == "audio":

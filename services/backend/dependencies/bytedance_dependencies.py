@@ -49,21 +49,27 @@ async def generate_video(
             })
         
         # Add first image if provided
+        # Strip all spaces from the image url
+
         if first_image:
+            first_image = first_image.replace(" ", "")
             content.append({
                 "type": "image_url",
                 "image_url": {
                     "url": first_image
-                }
+                },
+                "role": "first_frame"
             })
         
         # Add last image if provided
         if last_image:
+            last_image = last_image.replace(" ", "")
             content.append({
                 "type": "image_url",
                 "image_url": {
                     "url": last_image
-                }
+                }, 
+                "role": "last_frame"
             })
         
         # Validate that at least one content item is provided
@@ -83,6 +89,9 @@ async def generate_video(
             "Authorization": f"Bearer {ARK_API_KEY}"
         }
         
+
+        print(f"ByteDance video generation task created: {payload}")
+
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{ARK_API_BASE_URL}/contents/generations/tasks",

@@ -1,0 +1,33 @@
+version: 1
+
+services:
+  - name: videostack-frontend
+    type: web
+    build:
+      dockerfile: Dockerfile
+      context: .
+    port: 3000
+    healthCheck:
+      httpGet:
+        path: /
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    env:
+      - key: PORT
+        value: "3000"
+        scope: runtime
+      - key: NEXT_PUBLIC_API_URL
+        value: "${{ services.videostack-backend }}"
+        scope: runtime
+    deployment:
+      replicas: 1
+      resources:
+        cpu: 500m
+        memory: 1Gi
+      autoscaling:
+        enabled: false
+    domains: []

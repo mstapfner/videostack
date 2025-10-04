@@ -17,7 +17,7 @@ This document explains how to deploy the VideoStack backend service to Northflan
    - `AWS_ACCESS_KEY_ID` - AWS access key ID for S3 uploads
    - `AWS_SECRET_ACCESS_KEY` - AWS secret access key for S3 uploads
    - `S3_BUCKET_NAME` - S3 bucket name for image uploads
-   - `AWS_REGION` - AWS region for S3 (default: us-east-1)
+   - `AWS_REGION` - AWS region for S3 (default: eu-central-1)
 
 ## S3 Bucket Configuration
 
