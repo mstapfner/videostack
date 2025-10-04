@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Loader2, Video, Image as ImageIcon, Music, ChevronDown, FolderOpen, Play, Download, X, Calendar, Tag } from "lucide-react"
-import { fetchAllGenerations, type GenerationResponse, type GenerationListResponse } from '@/lib/api-client'
+import { fetchAllGenerations, deleteGeneration, type GenerationResponse, type GenerationListResponse } from '@/lib/api-client'
 import {
   Select,
   SelectContent,
@@ -36,6 +36,7 @@ export default function AssetsPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [selectedGeneration, setSelectedGeneration] = useState<GenerationResponse | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -156,6 +157,29 @@ export default function AssetsPage() {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to download file:', error)
+    }
+  }
+
+  const handleDelete = async (generation: GenerationResponse, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent opening the modal
+    
+    if (!confirm('Are you sure you want to delete this generation?')) {
+      return
+    }
+
+    try {
+      setDeletingId(generation.id)
+      await deleteGeneration(generation.id)
+      
+      // Remove from local state
+      setGenerations(prev => prev.filter(g => g.id !== generation.id))
+      setFilteredGenerations(prev => prev.filter(g => g.id !== generation.id))
+      setTotalCount(prev => prev - 1)
+    } catch (error) {
+      console.error('Failed to delete generation:', error)
+      alert('Failed to delete generation. Please try again.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -325,8 +349,22 @@ export default function AssetsPage() {
                       {getGenerationIcon(generation.generation_type)}
                     </div>
 
+                    {/* Delete Button */}
+                    <button
+                      onClick={(e) => handleDelete(generation, e)}
+                      disabled={deletingId === generation.id}
+                      className="absolute top-3 right-3 p-2 rounded-lg bg-red-500/80 hover:bg-red-600 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                      title="Delete"
+                    >
+                      {deletingId === generation.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <X className="w-4 h-4 text-white" />
+                      )}
+                    </button>
+
                     {/* Status Badge */}
-                    <div className={`absolute top-3 right-3 px-2 py-1 rounded-md text-xs font-medium border backdrop-blur-sm ${getStatusBadgeColor(generation.status)}`}>
+                    <div className={`absolute top-14 right-3 px-2 py-1 rounded-md text-xs font-medium border backdrop-blur-sm ${getStatusBadgeColor(generation.status)}`}>
                       {generation.status.charAt(0).toUpperCase() + generation.status.slice(1)}
                     </div>
 

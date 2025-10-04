@@ -343,8 +343,11 @@ async def get_user_generations(
         List of user generations with total count
     """
     try:
-        # Build query with filters
-        statement = select(Generation).where(Generation.user_id == current_user.database_id)
+        # Build query with filters - exclude deleted generations
+        statement = select(Generation).where(
+            Generation.user_id == current_user.database_id,
+            Generation.status != "deleted"
+        )
         
         # Apply type filter if provided
         if generation_type:
@@ -570,4 +573,61 @@ async def get_generation_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve generation status: {str(e)}",
+        )
+
+
+@r.delete("/{generation_id}", response_model=dict)
+async def delete_generation(
+    generation_id: str,
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Soft delete a generation (set status to 'deleted').
+
+    Args:
+        generation_id: ID of the generation to delete
+        current_user: Authenticated user from dependency
+
+    Returns:
+        Success message
+    """
+    try:
+        # Get the generation
+        statement = select(Generation).where(
+            Generation.id == generation_id,
+            Generation.user_id == current_user.database_id
+        )
+        generation = session.exec(statement).first()
+
+        if not generation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Generation not found",
+            )
+
+        # Check if already deleted
+        if generation.status == "deleted":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Generation is already deleted",
+            )
+
+        # Soft delete by setting status to 'deleted'
+        generation.status = "deleted"
+        session.add(generation)
+        session.commit()
+
+        return {
+            "message": "Generation deleted successfully",
+            "id": str(generation.id),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete generation: {str(e)}",
         )

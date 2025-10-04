@@ -22,8 +22,11 @@ async def get_user_assets(
         List of user assets
     """
     try:
-        # Query assets for the current user
-        statement = select(Asset).where(Asset.user_id == current_user.database_id)
+        # Query active assets for the current user (exclude deleted)
+        statement = select(Asset).where(
+            Asset.user_id == current_user.database_id,
+            Asset.status == "active"
+        )
         assets = session.exec(statement).all()
 
         # Convert to dictionaries for response
@@ -101,4 +104,58 @@ async def upload_asset(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create asset: {str(e)}",
+        )
+
+
+@r.delete("/{asset_id}", response_model=dict)
+async def delete_asset(
+    asset_id: str,
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Soft delete an asset (set status to 'deleted').
+
+    Args:
+        asset_id: ID of the asset to delete
+        current_user: Authenticated user from dependency
+
+    Returns:
+        Success message
+    """
+    try:
+        # Get the asset
+        statement = select(Asset).where(Asset.id == asset_id)
+        asset = session.exec(statement).first()
+
+        if not asset:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Asset not found",
+            )
+
+        # Verify ownership
+        if asset.user_id != current_user.database_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to delete this asset",
+            )
+
+        # Soft delete by setting status to 'deleted'
+        asset.status = "deleted"
+        session.add(asset)
+        session.commit()
+
+        return {
+            "message": "Asset deleted successfully",
+            "id": str(asset.id),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete asset: {str(e)}",
         )
