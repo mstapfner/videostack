@@ -46,6 +46,7 @@ export default function StoryboardEditor() {
     updateShot,
     reorderScenes,
     reorderShotsInScene,
+    generateAllImages,
     pollStoryboard,
     startPolling,
     stopPolling
@@ -67,14 +68,14 @@ export default function StoryboardEditor() {
   useEffect(() => {
     if (storyboardId && storyboardId !== lastLoadedIdRef.current && !isLoading) {
       lastLoadedIdRef.current = storyboardId;
-      loadStoryboard(storyboardId);
+      loadStoryboard(storyboardId).then(() => {
+        // After loading storyboard, trigger image generation for all shots
+        generateAllImages(storyboardId);
+      });
     }
-  }, [storyboardId, isLoading, loadStoryboard]);
+  }, [storyboardId, isLoading, loadStoryboard, generateAllImages]);
 
-  // Polling is disabled by default since we make real-time updates
-  // Only enable polling if you need to check for async operations (like video generation)
-  // Uncomment the code below if you need polling:
-  /*
+  // Enable polling to show images as they're generated
   useEffect(() => {
     if (!pathname.includes('/storyboard/new/editor') || !storyboardId) {
       stopPolling();
@@ -84,14 +85,13 @@ export default function StoryboardEditor() {
     startPolling();
     const pollInterval = setInterval(() => {
       pollStoryboard();
-    }, 10000); // Poll every 10 seconds instead of 2
+    }, 3000); // Poll every 3 seconds to show images as they're generated
 
     return () => {
       clearInterval(pollInterval);
       stopPolling();
     };
   }, [pollStoryboard, startPolling, stopPolling, pathname, storyboardId]);
-  */
 
   const sensors = useSensors(
     useSensor(PointerSensor),

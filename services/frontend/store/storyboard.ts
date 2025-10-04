@@ -45,6 +45,7 @@ interface StoryboardState {
   
   generateShot: (prompt: string, shotId: string) => Promise<void>;
   generateVideo: () => void;
+  generateAllImages: (storyboardId: string) => Promise<void>;
   pollStoryboard: () => Promise<void>;
   startPolling: () => void;
   stopPolling: () => void;
@@ -437,6 +438,19 @@ export const useStoryboardStore = create<StoryboardState>((set, get) => ({
   generateVideo: () => {
     console.log('Generating video from storyboard');
     // TODO: Implement video generation
+  },
+
+  generateAllImages: async (storyboardId) => {
+    try {
+      console.log('Starting image generation for all shots in storyboard:', storyboardId);
+      
+      // Call the backend to generate images (this is non-blocking on frontend)
+      await api.generateStoryboardImages(storyboardId);
+      
+      console.log('Image generation initiated successfully');
+    } catch (error) {
+      console.error('Failed to generate images:', error);
+    }
   },
 
   pollStoryboard: async () => {

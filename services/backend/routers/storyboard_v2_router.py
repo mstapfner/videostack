@@ -21,6 +21,7 @@ from schemas.storyboard_v2_schemas import (
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
+from dependencies.runware_dependencies import generate_image
 
 storyboard_v2_router = r = APIRouter()
 
@@ -948,5 +949,95 @@ async def delete_shot(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete shot: {str(e)}",
+        )
+
+
+# ============= Image Generation Endpoint =============
+
+@r.post("/{storyboard_id}/generate-images", response_model=StoryboardResponse)
+async def generate_storyboard_images(
+    storyboard_id: str,
+    current_user: UserProfile = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Generate images for all shots in a storyboard that don't have images yet.
+
+    Args:
+        storyboard_id: ID of the storyboard
+        current_user: Authenticated user from dependency
+        session: Database session
+
+    Returns:
+        Updated storyboard data with generated images
+    """
+    try:
+        # Verify storyboard belongs to user
+        statement = select(Storyboard).where(
+            Storyboard.id == storyboard_id,
+            Storyboard.user_id == current_user.database_id
+        )
+        storyboard = session.exec(statement).first()
+
+        if not storyboard:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Storyboard not found",
+            )
+
+        # Image generation parameters
+        model = "google:4@1"
+        width = 1024
+        height = 1024
+
+        # Loop through all scenes and shots
+        for scene in storyboard.scenes:
+            for shot in scene.shots:
+                # Only generate if no image exists yet
+                if not shot.start_image_url:
+                    try:
+                        # Update shot status to processing
+                        shot.status = "processing"
+                        session.add(shot)
+                        session.commit()
+
+                        # Generate image
+                        generated_image_url = await generate_image(
+                            prompt=shot.user_prompt,
+                            model=model,
+                            width=width,
+                            height=height
+                        )
+
+                        # Update shot with generated image
+                        if generated_image_url:
+                            shot.start_image_url = generated_image_url
+                            shot.status = "completed"
+                        else:
+                            shot.status = "failed"
+
+                        session.add(shot)
+                        session.commit()
+                        session.refresh(shot)
+
+                    except Exception as e:
+                        # Mark shot as failed but continue with other shots
+                        shot.status = "failed"
+                        session.add(shot)
+                        session.commit()
+                        print(f"Failed to generate image for shot {shot.id}: {str(e)}")
+
+        # Refresh storyboard to get all updated data
+        session.refresh(storyboard)
+
+        return _storyboard_to_response(storyboard)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate images: {str(e)}",
         )
 
