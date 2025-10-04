@@ -213,7 +213,7 @@ export default function CreatePage() {
     setGeneratedImageUrl(null)
 
     try {
-      const response = await createImageGeneration(prompt)
+      const response = await createImageGeneration(prompt, selectedImageModel)
       console.log('Generation completed successfully:', response)
 
       // Set the generated image URL directly from the response
@@ -244,7 +244,7 @@ export default function CreatePage() {
     setGeneratedVideoUrl(null)
 
     try {
-      const response = await createVideoGeneration(videoPrompt)
+      const response = await createVideoGeneration(videoPrompt, selectedVideoModel, image1Preview || undefined, image2Preview || undefined)
       console.log('Video generation completed successfully:', response)
 
       // Set the generated video URL directly from the response

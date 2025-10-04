@@ -10,6 +10,7 @@ class GenerationRequest(BaseModel):
     first_frame: Optional[str] = Field(None, description="Optional URL to first frame image")
     last_frame: Optional[str] = Field(None, description="Optional URL to last frame image")
     generation_type: str = Field(..., pattern="^(image|video|audio)$", description="Type of generation: 'image', 'video', or 'audio'")
+    model: Optional[str] = Field(None, description="Model to use for generation (e.g., 'seedance-1-0-lite-t2v-250428', 'google:4@1')")
     duration: Optional[int] = Field(None, ge=10, le=300, description="Duration in seconds for audio generation (10-300 seconds)")
 
 

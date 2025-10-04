@@ -60,7 +60,7 @@ export function EditCardModal({ card, isOpen, onClose, onUpdateShot }: EditCardM
   // Check if generate button should be disabled
   const hasImage = currentCard?.image_url || currentCard?.video_url;
   const promptUnchanged = localPrompt === originalPrompt;
-  const shouldDisableGenerate = hasImage && promptUnchanged;
+  const shouldDisableGenerate = Boolean(hasImage && promptUnchanged);
 
   if (!currentCard) return null;
 

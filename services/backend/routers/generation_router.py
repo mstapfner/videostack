@@ -39,9 +39,8 @@ async def create_generation(
         # Generate content based on type
         if request.generation_type == "image":
             # Image generation parameters
-            # model = "runware:101@1"
-            model = "google:4@1"
-            
+            model = request.model if request.model else "google:4@1"
+
             width = 1024
             height = 1024
             generated_content_url = await generate_image(request.prompt, model, width, height)
@@ -59,14 +58,14 @@ async def create_generation(
             
         elif request.generation_type == "video":
             # Video generation parameters
-            model = "bytedance:2@1"
+            model = request.model if request.model else "bytedance:2@1"
             width = 864
             height = 480
             duration = 5
             fps = 24
             output_format = "MP4"
             output_quality = 85
-            
+
             generated_content_url = await generate_video(
                 prompt=request.prompt,
                 model=model,
@@ -76,6 +75,8 @@ async def create_generation(
                 fps=fps,
                 output_format=output_format,
                 output_quality=output_quality,
+                first_frame=request.first_frame,
+                last_frame=request.last_frame,
             )
             
             # Create new generation with the generated content URL
@@ -91,7 +92,7 @@ async def create_generation(
             
         elif request.generation_type == "audio":
             # Audio generation parameters
-            model = "elevenlabs:1@1"
+            model = request.model if request.model else "elevenlabs:1@1"
             duration = request.duration if request.duration else 10
             output_format = "MP3"
             bitrate = 128
