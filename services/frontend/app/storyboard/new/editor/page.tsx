@@ -23,6 +23,7 @@ import { SceneContainer } from '@/components/SceneContainer';
 import { EditCardModal } from '@/components/EditCardModal';
 import { VideoGenerationModal } from '@/components/VideoGenerationModal';
 import { StoryboardCard } from '@/store/storyboard';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Video, Download, Play, Plus, Loader2 } from 'lucide-react';
 import Image from 'next/image';
@@ -177,7 +178,8 @@ export default function StoryboardEditor() {
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <AuthGuard>
+      <div className="h-screen bg-[#0a0a0a] text-white flex flex-col">
       {/* Header */}
       <header className="border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-sm flex-shrink-0">
         <div className="px-6 py-4 flex items-center justify-between">
@@ -334,6 +336,7 @@ export default function StoryboardEditor() {
         onClose={() => setIsVideoGenerationModalOpen(false)}
       />
     </div>
+    </AuthGuard>
   );
 }
 

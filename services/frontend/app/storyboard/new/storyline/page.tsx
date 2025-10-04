@@ -11,6 +11,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { createStoryboard, generateStoryboardScenes } from "@/lib/api-client"
 import { useStoryboardStore } from "@/store/storyboard"
+import { AuthGuard } from "@/components/AuthGuard"
 
 interface StoryboardOption {
   title: string;
@@ -179,7 +180,8 @@ export default function StorylinePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <AuthGuard>
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
       <header className="border-b border-neutral-800">
         <div className="flex items-center gap-6 px-6 py-4">
@@ -362,5 +364,6 @@ export default function StorylinePage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }

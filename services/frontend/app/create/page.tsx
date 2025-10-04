@@ -14,7 +14,7 @@ import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { createImageGeneration, createVideoGeneration, createAudioGeneration } from "@/lib/api-client"
-import { useAuth } from "@/lib/auth-context"
+import { AuthGuard } from "@/components/AuthGuard"
 
 const angleOptions = [
   { id: "none", label: "None", image: null },
@@ -55,6 +55,22 @@ const durationOptions = [
   { id: "12s", label: "12s" },
 ]
 
+const imageModelOptions = [
+  { id: "seedream", label: "Seedream", hasResolutions: true },
+  { id: "nanobanana", label: "NanoBanana", hasResolutions: false },
+]
+
+const seedreamResolutions = [
+  { id: "2048x2048", label: "2048x2048" },
+  { id: "2304x1728", label: "2304x1728" },
+  { id: "1728x2304", label: "1728x2304" },
+  { id: "2560x1440", label: "2560x1440" },
+  { id: "1440x2560", label: "1440x2560" },
+  { id: "2496x1664", label: "2496x1664" },
+  { id: "1664x2496", label: "1664x2496" },
+  { id: "3024x1296", label: "3024x1296" },
+]
+
 export default function CreatePage() {
   const [activeTab, setActiveTab] = useState("video")
   const [selectedAngle, setSelectedAngle] = useState("none")
@@ -74,14 +90,22 @@ export default function CreatePage() {
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-lite-text")
   const [selectedAspectRatio, setSelectedAspectRatio] = useState("16:9")
   const [selectedDuration, setSelectedDuration] = useState("5s")
+  const [selectedImageModel, setSelectedImageModel] = useState("seedream")
+  const [selectedImageResolution, setSelectedImageResolution] = useState("2048x2048")
+  const [nanoBananaImage, setNanoBananaImage] = useState<File | null>(null)
+  const [nanoBananaImagePreview, setNanoBananaImagePreview] = useState<string | null>(null)
 
   const fileInput1Ref = useRef<HTMLInputElement>(null)
   const fileInput2Ref = useRef<HTMLInputElement>(null)
+  const nanoBananaFileInputRef = useRef<HTMLInputElement>(null)
 
-  const { isAuthenticated } = useAuth()
 
   const getCurrentVideoModel = () => {
     return videoModelOptions.find(model => model.id === selectedVideoModel) || videoModelOptions[0]
+  }
+
+  const getCurrentImageModel = () => {
+    return imageModelOptions.find(model => model.id === selectedImageModel) || imageModelOptions[0]
   }
 
   const handleVideoModelChange = (modelId: string) => {
@@ -91,6 +115,22 @@ export default function CreatePage() {
     setSelectedImage2(null)
     setImage1Preview(null)
     setImage2Preview(null)
+  }
+
+  const handleImageModelChange = (modelId: string) => {
+    setSelectedImageModel(modelId)
+    // Reset resolution to default when switching to NanoBanana (which has fixed 1:1)
+    if (modelId === "nanobanana") {
+      setSelectedImageResolution("1:1")
+    } else {
+      setSelectedImageResolution("2048x2048")
+      // Clear NanoBanana image when switching to Seedream
+      setNanoBananaImage(null)
+      setNanoBananaImagePreview(null)
+      if (nanoBananaFileInputRef.current) {
+        nanoBananaFileInputRef.current.value = ''
+      }
+    }
   }
 
   const handleFileSelect = (fileNumber: 1 | 2, file: File | null) => {
@@ -139,24 +179,34 @@ export default function CreatePage() {
     }
   }
 
+  const handleNanoBananaFileSelect = (file: File | null) => {
+    setNanoBananaImage(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => setNanoBananaImagePreview(e.target?.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      setNanoBananaImagePreview(null)
+    }
+  }
+
+  const handleNanoBananaUploadClick = () => {
+    nanoBananaFileInputRef.current?.click()
+  }
+
+  const handleRemoveNanoBananaImage = () => {
+    setNanoBananaImage(null)
+    setNanoBananaImagePreview(null)
+    if (nanoBananaFileInputRef.current) {
+      nanoBananaFileInputRef.current.value = ''
+    }
+  }
+
   const handleImageGeneration = async () => {
     if (!prompt.trim()) {
       setGenerationError("Please enter a prompt for image generation")
       return
     }
-
-    // Check authentication more thoroughly
-    const token = localStorage.getItem('access_token')
-    if (!token || !isAuthenticated) {
-      setGenerationError("Please log in to generate images")
-      return
-    }
-
-    console.log('Starting image generation with authentication check:', {
-      hasToken: !!token,
-      isAuthenticated,
-      promptLength: prompt.length
-    })
 
     setIsGenerating(true)
     setGenerationError(null)
@@ -188,19 +238,6 @@ export default function CreatePage() {
       setGenerationError("Please enter a prompt for video generation")
       return
     }
-
-    // Check authentication more thoroughly
-    const token = localStorage.getItem('access_token')
-    if (!token || !isAuthenticated) {
-      setGenerationError("Please log in to generate videos")
-      return
-    }
-
-    console.log('Starting video generation with authentication check:', {
-      hasToken: !!token,
-      isAuthenticated,
-      promptLength: videoPrompt.length
-    })
 
     setIsGenerating(true)
     setGenerationError(null)
@@ -239,20 +276,6 @@ export default function CreatePage() {
       return
     }
 
-    // Check authentication more thoroughly
-    const token = localStorage.getItem('access_token')
-    if (!token || !isAuthenticated) {
-      setGenerationError("Please log in to generate audio")
-      return
-    }
-
-    console.log('Starting audio generation with authentication check:', {
-      hasToken: !!token,
-      isAuthenticated,
-      promptLength: audioPrompt.length,
-      duration: audioDuration
-    })
-
     setIsGenerating(true)
     setGenerationError(null)
     setGeneratedAudioUrl(null)
@@ -279,7 +302,8 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] text-white">
+    <AuthGuard>
+      <div className="flex min-h-screen bg-[#0a0a0a] text-white">
       <Sidebar />
 
       <main className="flex-1">
@@ -413,12 +437,6 @@ export default function CreatePage() {
                   {generationError && (
                     <div className="p-3 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
                       {generationError}
-                    </div>
-                  )}
-
-                  {!isAuthenticated && (
-                    <div className="p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm">
-                      Please log in to generate videos
                     </div>
                   )}
 
@@ -586,6 +604,35 @@ export default function CreatePage() {
                     </div>
                   )}
 
+                  {/* Selected Image Preview for NanoBanana */}
+                  {nanoBananaImagePreview && selectedImageModel === "nanobanana" && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-center">Selected Image</h3>
+                      <div className="flex justify-center">
+                        <div className="relative">
+                          <Image
+                            src={nanoBananaImagePreview}
+                            alt="Selected image for processing"
+                            width={200}
+                            height={200}
+                            className="w-32 h-32 object-cover rounded-lg border border-neutral-700"
+                          />
+                          <span className="absolute -top-2 -left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                            Source Image
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full p-0"
+                            onClick={handleRemoveNanoBananaImage}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="relative">
                     <Textarea
                       placeholder="Describe what you want to create..."
@@ -608,49 +655,46 @@ export default function CreatePage() {
                     </div>
                   )}
 
-                  {!isAuthenticated && (
-                    <div className="p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm">
-                      Please log in to generate images
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <ImageIcon className="w-5 h-5" />
-                      </Button>
+                      {/* Left side intentionally empty - removed image buttons */}
                     </div>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
-                        <Star className="w-4 h-4 mr-2" />
-                        Flux
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </Button>
+                      <Select value={selectedImageModel} onValueChange={handleImageModelChange}>
+                        <SelectTrigger className="w-40 bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                          <Star className="w-4 h-4 mr-2" />
+                          <SelectValue placeholder={selectedImageModel} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-neutral-900 border-neutral-800">
+                          {imageModelOptions.map((model) => (
+                            <SelectItem key={model.id} value={model.id} className="text-white hover:bg-neutral-800">
+                              {model.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {getCurrentImageModel().hasResolutions && (
+                        <Select value={selectedImageResolution} onValueChange={setSelectedImageResolution}>
+                          <SelectTrigger className="w-32 bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
+                            <Monitor className="w-4 h-4 mr-1" />
+                            <SelectValue placeholder={selectedImageResolution} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-neutral-900 border-neutral-800">
+                            {seedreamResolutions.map((resolution) => (
+                              <SelectItem key={resolution.id} value={resolution.id} className="text-white hover:bg-neutral-800">
+                                {resolution.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        )}
+                        {!getCurrentImageModel().hasResolutions && (
+                          <div className="flex items-center px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-md text-sm text-neutral-400">
+                            <Monitor className="w-4 h-4 mr-1" />
+                            1:1 Fixed
+                          </div>
+                        )}
                       <Button
                         size="icon"
                         variant="outline"
@@ -658,6 +702,41 @@ export default function CreatePage() {
                       >
                         <Camera className="w-4 h-4" />
                       </Button>
+                      {/* NanoBanana upload button - positioned at the right */}
+                      {!getCurrentImageModel().hasResolutions && (
+                        <>
+                          {/* Hidden file input for NanoBanana */}
+                          <input
+                            ref={nanoBananaFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null
+                              handleNanoBananaFileSelect(file)
+                            }}
+                          />
+                          {/* Upload button for NanoBanana */}
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800 relative"
+                            onClick={handleNanoBananaUploadClick}
+                          >
+                            {nanoBananaImagePreview ? (
+                              <Image
+                                src={nanoBananaImagePreview}
+                                alt="Selected NanoBanana image"
+                                width={20}
+                                height={20}
+                                className="w-5 h-5 object-cover rounded"
+                              />
+                            ) : (
+                              <Upload className="w-5 h-5" />
+                            )}
+                          </Button>
+                        </>
+                      )}
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -808,12 +887,6 @@ export default function CreatePage() {
                     </div>
                   )}
 
-                  {!isAuthenticated && (
-                    <div className="p-3 bg-yellow-900/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-sm">
-                      Please log in to generate audio
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
                       <Button variant="outline" className="bg-neutral-950 border-neutral-700 hover:bg-neutral-800">
@@ -870,5 +943,6 @@ export default function CreatePage() {
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }

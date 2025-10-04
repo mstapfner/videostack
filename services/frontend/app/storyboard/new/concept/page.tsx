@@ -8,26 +8,15 @@ import { ArrowLeft, Mic, Sparkles, Loader2, LogIn } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { generateStoryboardOptions } from "@/lib/api-client"
-import { useAuth } from "@/lib/auth-context"
+import { AuthGuard } from "@/components/AuthGuard"
 
 export default function ConceptPage() {
   const router = useRouter()
-  const { isAuthenticated, login, isLoading: authLoading } = useAuth()
-  const [concept, setConcept] = useState(
-    "",
-  )
+  const [concept, setConcept] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      // Auto-login for demo purposes - in production you'd redirect to login page
-      login()
-    }
-  }, [isAuthenticated, authLoading, login])
-
   const handleGenerate = async () => {
-    if (!concept.trim() || !isAuthenticated) return
+    if (!concept.trim()) return
 
     setIsLoading(true)
     try {
@@ -50,7 +39,8 @@ export default function ConceptPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <AuthGuard>
+      <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
       <header className="border-b border-neutral-800">
         <div className="flex items-center gap-6 px-6 py-4">
@@ -101,23 +91,25 @@ export default function ConceptPage() {
 
             <Button
               onClick={handleGenerate}
-              disabled={isLoading || !concept.trim() || !isAuthenticated || authLoading}
+              disabled={isLoading || !concept.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-base font-medium disabled:opacity-50"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ) : authLoading ? (
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ) : !isAuthenticated ? (
-                <LogIn className="w-5 h-5 mr-2" />
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating...
+                </>
               ) : (
-                <Sparkles className="w-5 h-5 mr-2" />
+                <>
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate Video Storyboard
+                </>
               )}
-              {isLoading ? "Generating..." : authLoading ? "Authenticating..." : !isAuthenticated ? "Login Required" : "Generate Video Storyboard"}
             </Button>
           </div>
         </div>
       </main>
     </div>
+    </AuthGuard>
   )
 }
