@@ -15,10 +15,14 @@ coverage.xml
 *.cover
 *.log
 .git
+.gitignore
 .mypy_cache
 .pytest_cache
 .hypothesis
 .env
+.env.local
+.env.production
+.env.staging
 .venv
 env/
 venv/
@@ -29,3 +33,16 @@ venv.bak/
 dist/
 build/
 *.egg
+# Development files
+README.md
+*.md
+docs/
+tests/
+test_*.py
+conftest.py
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

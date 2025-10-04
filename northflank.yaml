@@ -1,0 +1,82 @@
+version: 1
+
+services:
+  - name: videostack-backend
+    type: web
+    build:
+      dockerfile: services/backend/Dockerfile
+      context: .
+    port: 8000
+    healthCheck:
+      httpGet:
+        path: /
+        port: 8000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    env:
+      - key: PORT
+        value: "8000"
+        scope: runtime
+      - key: DATABASE_URL
+        value: "${{ secrets.DATABASE_URL }}"
+        scope: runtime
+      - key: WORKOS_CLIENT_ID
+        value: "${{ secrets.WORKOS_CLIENT_ID }}"
+        scope: runtime
+      - key: WORKOS_API_KEY
+        value: "${{ secrets.WORKOS_API_KEY }}"
+        scope: runtime
+      - key: OPENAI_API_KEY
+        value: "${{ secrets.OPENAI_API_KEY }}"
+        scope: runtime
+      - key: GROQ_API_KEY
+        value: "${{ secrets.GROQ_API_KEY }}"
+        scope: runtime
+      - key: RUNWARE_API_KEY
+        value: "${{ secrets.RUNWARE_API_KEY }}"
+        scope: runtime
+    deployment:
+      replicas: 1
+      resources:
+        cpu: 1000m
+        memory: 2Gi
+      autoscaling:
+        enabled: false
+    domains: []
+
+  - name: videostack-frontend
+    type: static-site
+    build:
+      dockerfile: Dockerfile
+      context: services/frontend
+    buildCommand: npm run build
+    publishDir: out
+    env:
+      - key: NEXT_PUBLIC_API_URL
+        value: "${{ services.videostack-backend }}"
+        scope: buildtime
+    deployment:
+      replicas: 1
+      resources:
+        cpu: 500m
+        memory: 1Gi
+    domains:
+      - name: your-domain.com
+
+databases:
+  - name: videostack-postgres
+    type: postgres
+    version: "15"
+    storage: 10Gi
+    replicas: 1
+    credentials:
+      username: videostack_user
+      password: "${{ secrets.DB_PASSWORD }}"
+      database: videostack
+    backup:
+      enabled: true
+      schedule: "0 2 * * *"
+      retention: 7
