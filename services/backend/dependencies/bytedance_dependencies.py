@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 import logging
 from typing import Optional, Dict, Any, List
@@ -19,8 +20,8 @@ async def generate_video(
     camera_fixed: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
-    Generate a video using ByteDance ARK API.
-    
+    Generate a video using ByteDance ARK API with polling for completion.
+
     Args:
         text: Optional text prompt for video generation
         first_image: Optional URL to the first image
@@ -29,9 +30,10 @@ async def generate_video(
         resolution: Video resolution (default: 720p)
         duration: Video duration in seconds (default: 5)
         camera_fixed: Whether camera should be fixed (default: False)
-        
+
     Returns:
-        API response as a dictionary, or None if generation failed
+        Dictionary containing video_url and task_id, or None if generation failed
+        Polls for up to 5 minutes waiting for task completion.
     """
     try:
         # Build content array based on provided parameters
@@ -92,7 +94,69 @@ async def generate_video(
             result = response.json()
             
             logger.info(f"ByteDance video generation task created: {result}")
-            return result
+        
+        
+
+            # Extract task ID and start polling
+            task_id = result.get("id")
+            if not task_id:
+                logger.error("No task ID returned from ByteDance API")
+                return None
+
+            logger.info(f"ByteDance video generation task created: {task_id}")
+
+            # Poll for task completion
+            max_polls = 60  # Maximum 5 minutes (60 * 5 second intervals)
+            poll_interval = 5  # Poll every 5 seconds
+
+            for _ in range(max_polls):
+                try:
+                    # Check task status
+                    status_response = await client.get(
+                        f"{ARK_API_BASE_URL}/contents/generations/tasks/{task_id}",
+                        headers=headers
+                    )
+
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+
+                        # Check if task is completed
+                        if status_data.get("status") == "succeeded":
+                            # try to get a single video url from the response
+                            video_url = status_data.get("content", {}).get("video_url")
+                            if video_url:
+                                logger.info(f"Video generation completed for task {task_id}")
+                                return {"video_url": video_url, "task_id": task_id}
+                            
+                            # Extract video URL from the response
+                            contents = status_data.get("contents", [])
+                            if contents and len(contents) > 0:
+                                video_url = contents[0].get("url")
+                                if video_url:
+                                    logger.info(f"Video generation completed for task {task_id}")
+                                    return {"video_url": video_url, "task_id": task_id}
+
+                        # If task is still processing, wait and poll again
+                        elif status_data.get("status") in ["pending", "processing"]:
+                            await asyncio.sleep(poll_interval)
+                            continue
+
+                        # If task failed, log error and return None
+                        elif status_data.get("status") == "failed":
+                            logger.error(f"Video generation failed for task {task_id}: {status_data.get('error', 'Unknown error')}")
+                            return None
+
+                    # If status check fails, wait and try again
+                    await asyncio.sleep(poll_interval)
+
+                except Exception as e:
+                    logger.error(f"Error polling task status for {task_id}: {str(e)}")
+                    await asyncio.sleep(poll_interval)
+
+            # If we reach here, polling timed out
+            logger.error(f"Video generation polling timed out for task {task_id}")
+            return None
+        
             
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error during ByteDance video generation: {e.response.status_code} - {e.response.text}")
@@ -149,7 +213,59 @@ async def generate_image(
             result = response.json()
             
             logger.info(f"ByteDance image generation task created: {result}")
-            return result
+                # Extract task ID and start polling
+            task_id = result.get("id")
+            if not task_id:
+                logger.error("No task ID returned from ByteDance API")
+                return None
+
+            logger.info(f"ByteDance video generation task created: {task_id}")
+
+            # Poll for task completion
+            max_polls = 60  # Maximum 5 minutes (60 * 5 second intervals)
+            poll_interval = 5  # Poll every 5 seconds
+
+            for _ in range(max_polls):
+                try:
+                    # Check task status
+                    status_response = await client.get(
+                        f"{ARK_API_BASE_URL}/contents/generations/tasks/{task_id}",
+                        headers=headers
+                    )
+
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+
+                        # Check if task is completed
+                        if status_data.get("status") == "succeeded":
+                            # Extract video URL from the response
+                            contents = status_data.get("contents", [])
+                            if contents and len(contents) > 0:
+                                video_url = contents[0].get("url")
+                                if video_url:
+                                    logger.info(f"Video generation completed for task {task_id}")
+                                    return {"video_url": video_url, "task_id": task_id}
+
+                        # If task is still processing, wait and poll again
+                        elif status_data.get("status") in ["pending", "processing"]:
+                            await asyncio.sleep(poll_interval)
+                            continue
+
+                        # If task failed, log error and return None
+                        elif status_data.get("status") == "failed":
+                            logger.error(f"Video generation failed for task {task_id}: {status_data.get('error', 'Unknown error')}")
+                            return None
+
+                    # If status check fails, wait and try again
+                    await asyncio.sleep(poll_interval)
+
+                except Exception as e:
+                    logger.error(f"Error polling task status for {task_id}: {str(e)}")
+                    await asyncio.sleep(poll_interval)
+
+            # If we reach here, polling timed out
+            logger.error(f"Video generation polling timed out for task {task_id}")
+            return None
             
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error during ByteDance image generation: {e.response.status_code} - {e.response.text}")

@@ -247,6 +247,7 @@ async def generate_video(
 
 async def generate_image(prompt: str, model: str, width: int, height: int):
 
+    # TODO: implement seedance image generation
     # {"taskType":"imageInference","model":"google:4@1","positivePrompt":"indian music","numberResults":1,"outputType":["dataURI","URL"],"outputFormat":"JPEG","seed":923884216,"includeCost":true,"outputQuality":85,"taskUUID":"22891bc1-b39d-463e-9b82-8dc14464604c"}
 
     request = IImageInference(

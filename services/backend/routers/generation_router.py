@@ -13,7 +13,8 @@ from schemas.generation_schemas import (
 )
 from dependencies.auth_dependencies import get_current_user
 from db.session import get_session
-from dependencies.runware_dependencies import generate_image, generate_video, generate_audio
+from dependencies.runware_dependencies import generate_image, generate_audio, generate_video
+from dependencies.bytedance_dependencies import generate_video as generate_bytedance_video
 
 logger = logging.getLogger(__name__)
 generation_router = r = APIRouter()
@@ -41,8 +42,9 @@ async def create_generation(
             # Image generation parameters
             model = request.model if request.model else "google:4@1"
 
-            width = 1024
-            height = 1024
+            width = request.width if request.width else 1024
+            height = request.height if request.height else 1024
+
             generated_content_url = await generate_image(request.prompt, model, width, height)
             
             # Create new generation with the generated content URL
@@ -57,36 +59,116 @@ async def create_generation(
             )
             
         elif request.generation_type == "video":
-            # Video generation parameters
-            model = request.model if request.model else "bytedance:2@1"
-            width = 864
-            height = 480
-            duration = 5
-            fps = 24
-            output_format = "MP4"
-            output_quality = 85
+            # Get model from request or use appropriate default
+            model = request.model if request.model else "seedance-1-0-lite-t2v-250428"
 
-            generated_content_url = await generate_video(
-                prompt=request.prompt,
-                model=model,
-                width=width,
-                height=height,
-                duration=duration,
-                fps=fps,
-                output_format=output_format,
-                output_quality=output_quality,
-                first_frame=request.first_frame,
-                last_frame=request.last_frame,
-            )
-            
+            # Check if this is a ByteDance seedance model
+            is_seedance_model = model.startswith("seedance") or "seedance" in model
+
+            if is_seedance_model:
+                # Handle ByteDance seedance models using ByteDance API directly
+                duration = request.duration if request.duration else 5
+
+                # Map resolution parameters to ByteDance format
+                resolution = "720p"  # Default resolution
+
+                if request.width and request.height:
+                    # Map common width/height combinations to ByteDance resolution
+                    width_height_map = {
+                        (864, 480): "720p",
+                        (1024, 576): "1080p",
+                        (1280, 720): "720p",
+                        (1920, 1080): "1080p",
+                    }
+                    resolution = width_height_map.get((request.width, request.height), "720p")
+                elif request.aspect_ratio:
+                    # Map aspect ratio to resolution (all map to 720p for now as per API)
+                    aspect_ratio_map = {
+                        "16:9": "720p",
+                        "9:16": "720p",
+                        "1:1": "720p",
+                        "3:4": "720p",
+                        "4:3": "720p",
+                        "21:9": "720p",
+                        "adaptive": "720p"
+                    }
+                    resolution = aspect_ratio_map.get(request.aspect_ratio, "720p")
+
+                # Camera fixed parameter (not in schema, so use default)
+                camera_fixed = False
+
+                print(f"🎥 ROUTER: Using ByteDance API for seedance model: {model}")
+                print(f"🎥 ROUTER: Prompt: {request.prompt[:50]}...")
+                print(f"🎥 ROUTER: Duration: {duration}s, Resolution: {resolution}")
+                print(f"🎥 ROUTER: First frame: {request.first_frame}")
+                print(f"🎥 ROUTER: Last frame: {request.last_frame}")
+
+                # Use ByteDance API directly for seedance models
+                bytedance_response = await generate_bytedance_video(
+                    text=request.prompt,
+                    first_image=request.first_frame,
+                    last_image=request.last_frame,
+                    model=model,
+                    resolution=resolution,
+                    duration=duration,
+                    camera_fixed=camera_fixed,
+                )
+
+                # Handle ByteDance API response (async task)
+                if bytedance_response and isinstance(bytedance_response, dict):
+                    print(f"🎥 ROUTER: ByteDance task created: {bytedance_response}")
+
+                    # Extract task information for storage and future polling
+                    task_data = {
+                        "task_id": bytedance_response.get("id", ""),
+                        "status": bytedance_response.get("status", "processing"),
+                        "model": model,
+                        "prompt": request.prompt,
+                        "resolution": resolution,
+                        "duration": duration,
+                    }
+
+                    # For now, store task info as URL (will be processed by polling system later)
+                    generated_content_url = bytedance_response.get('video_url', '-')
+
+                    print(f"🎥 ROUTER: Task stored for async processing: {generated_content_url}")
+                else:
+                    generated_content_url = None
+                    print(f"🎥 ROUTER: ByteDance API call failed or returned None")
+
+            else:
+                # Handle other models (Runware, etc.)
+                width = request.width if request.width else 864
+                height = request.height if request.height else 480
+                duration = request.duration if request.duration else 5
+                fps = 24
+                output_format = "MP4"
+                output_quality = 85
+
+                generated_content_url = await generate_video(
+                    prompt=request.prompt,
+                    model=model,
+                    width=width,
+                    height=height,
+                    duration=duration,
+                    fps=fps,
+                    output_format=output_format,
+                    output_quality=output_quality,
+                    first_frame=request.first_frame,
+                    last_frame=request.last_frame,
+                )
+
             # Create new generation with the generated content URL
+            # Set generation status based on model type (ByteDance models are async)
+            generation_status = "processing" if is_seedance_model else "completed"
+
             new_generation = Generation(
                 user_id=current_user.database_id,
                 prompt=request.prompt,
                 first_frame=request.first_frame,
                 last_frame=request.last_frame,
                 generation_type=request.generation_type,
-                status="completed",
+                status=generation_status,
                 generated_content_url=generated_content_url,
             )
             

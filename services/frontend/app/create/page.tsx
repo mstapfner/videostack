@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2, Upload, X, Monitor } from "lucide-react"
+import { Plus, Mic, ImageIcon, Undo2, Star, Clock, Music, Settings, Camera, User, Loader2, Upload, X, Monitor, Download } from "lucide-react"
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { createImageGeneration, createVideoGeneration, createAudioGeneration } from "@/lib/api-client"
@@ -244,7 +244,28 @@ export default function CreatePage() {
     setGeneratedVideoUrl(null)
 
     try {
-      const response = await createVideoGeneration(videoPrompt, selectedVideoModel, image1Preview || undefined, image2Preview || undefined)
+      // Parse duration from selectedDuration (e.g., "5s" -> 5)
+      const duration = parseInt(selectedDuration.replace('s', ''))
+
+      // Determine first and last frame based on selected model and uploaded images
+      let firstFrame: string | undefined
+      let lastFrame: string | undefined
+
+      if (getCurrentVideoModel().uploadButtons >= 1 && image1Preview) {
+        firstFrame = image1Preview
+      }
+      if (getCurrentVideoModel().uploadButtons >= 2 && image2Preview) {
+        lastFrame = image2Preview
+      }
+
+      const response = await createVideoGeneration(
+        videoPrompt,
+        selectedVideoModel,
+        firstFrame,
+        lastFrame,
+        duration,
+        selectedAspectRatio
+      )
       console.log('Video generation completed successfully:', response)
 
       // Set the generated video URL directly from the response
@@ -298,6 +319,33 @@ export default function CreatePage() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio'
       setGenerationError(errorMessage)
       setIsGenerating(false)
+    }
+  }
+
+  const downloadFile = (url: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleDownloadVideo = () => {
+    if (generatedVideoUrl) {
+      downloadFile(generatedVideoUrl, `generated-video-${Date.now()}.mp4`)
+    }
+  }
+
+  const handleDownloadImage = () => {
+    if (generatedImageUrl) {
+      downloadFile(generatedImageUrl, `generated-image-${Date.now()}.png`)
+    }
+  }
+
+  const handleDownloadAudio = () => {
+    if (generatedAudioUrl) {
+      downloadFile(generatedAudioUrl, `generated-audio-${Date.now()}.mp3`)
     }
   }
 
@@ -361,6 +409,15 @@ export default function CreatePage() {
                         >
                           Your browser does not support the video tag.
                         </video>
+                        <div className="flex justify-center mt-4">
+                          <Button
+                            onClick={handleDownloadVideo}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Video
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -600,6 +657,15 @@ export default function CreatePage() {
                           className="w-full h-auto rounded-lg border border-neutral-700"
                           onError={() => setGenerationError("Failed to load generated image")}
                         />
+                        <div className="flex justify-center mt-4">
+                          <Button
+                            onClick={handleDownloadImage}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Image
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -839,6 +905,15 @@ export default function CreatePage() {
                         >
                           Your browser does not support the audio element.
                         </audio>
+                        <div className="flex justify-center mt-4">
+                          <Button
+                            onClick={handleDownloadAudio}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Audio
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
