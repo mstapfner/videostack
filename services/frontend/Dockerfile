@@ -4,14 +4,17 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files, including the new lock file
+# Copy package files
 COPY package.json package-lock.json ./
 
 # Install dependencies using legacy peer deps to avoid conflicts
 RUN npm install --legacy-peer-deps
 
-# Copy source code
+# Copy all source code
 COPY . .
+
+# Verify structure (for debugging)
+RUN ls -la && ls -la lib/ || echo "lib directory not found"
 
 # Build the static export
 RUN npm run build
