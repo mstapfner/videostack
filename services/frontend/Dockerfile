@@ -1,5 +1,5 @@
-# Use Node.js 18 Alpine as base image for smaller size
-FROM node:18-alpine AS base
+# Build stage
+FROM node:18-alpine AS builder
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -16,34 +16,20 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the static export
 RUN pnpm run build
 
-# Production stage
-FROM node:18-alpine AS runner
+# Production stage - use nginx to serve static files
+FROM nginx:alpine
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Set working directory
-WORKDIR /app
-
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# Copy standalone output
-COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=base --chown=nextjs:nodejs /app/public ./public
-
-# Switch to non-root user
-USER nextjs
+# Copy built static files from builder
+COPY --from=builder /app/out /usr/share/nginx/html
 
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "server.js"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
